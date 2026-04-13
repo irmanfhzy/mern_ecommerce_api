@@ -1,12 +1,12 @@
 import express from "express";
-import validateObjectId from "../middlewares/validateObjectId.js";
+import validateObjectId from "../middlewares/objectIdValidator.js";
 import {
   createProduct,
   deleteProductById,
   findAllProducts,
   findProductById,
   updateProduct,
-} from "../controller/productController.js";
+} from "../controllers/productController.js";
 
 const router = express.Router();
 

@@ -3,7 +3,7 @@ import Logo from "../common/Logo";
 import { PiShoppingCartSimple } from "react-icons/pi";
 import SearchBar from "../common/SearchBar";
 
-export default function UserHeader() {
+export default function UserNavbar() {
   return (
     <nav className="flex text-white gap-4 w-full h-full items-center">
       <div className="flex gap-4">
@@ -27,7 +27,7 @@ export default function UserHeader() {
           <PiShoppingCartSimple className="w-8 h-8" />
         </Link>
         <div>
-          <Link>Login</Link> | <Link>Sign Up</Link>
+          <Link to="/login">Login</Link> | <Link>Sign Up</Link>
         </div>
       </div>
     </nav>

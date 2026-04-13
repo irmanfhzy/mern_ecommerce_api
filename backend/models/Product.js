@@ -7,27 +7,24 @@ const productSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    price: {
-      type: Number,
-      required: true,
-      min: 0,
+    brand: {
+      type: String,
+      trim: true,
     },
     description: {
       type: String,
       maxlength: 1000,
     },
-    stock: {
-      type: Number,
-      min: 0,
-      default: 0,
-    },
+
     image: {
-      type: String,
+      type: [String],
       required: false,
     },
   },
   { timestamps: true },
 );
+
+productSchema.index({ name: 1 });
 
 const Product = mongoose.model("Product", productSchema);
 
