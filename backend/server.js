@@ -5,6 +5,7 @@ import connectDB from "./config/database.js";
 import productRoutes from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import cors from "cors";
+import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
 app.use(cors());
@@ -24,3 +25,5 @@ async function startServer() {
     console.log(`Server is running on http://localhost:${process.env.PORT}`);
   });
 }
+
+app.use(errorHandler);

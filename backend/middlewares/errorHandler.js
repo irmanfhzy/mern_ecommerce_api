@@ -22,12 +22,12 @@ export function errorHandler(err, req, res, next) {
       .json({ success: false, message: `${field} already exist` });
   }
 
-  if (err instanceof JsonWebTokenError) {
-    return res.status(401).json({ success: false, message: "Invalid token" });
-  }
-
   if (err instanceof TokenExpiredError) {
     return res.status(401).json({ success: false, message: "Token expired" });
+  }
+
+  if (err instanceof JsonWebTokenError) {
+    return res.status(401).json({ success: false, message: "Invalid token" });
   }
 
   if (err.status) {

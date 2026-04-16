@@ -1,71 +1,58 @@
 import Product from "../models/Product.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { AppError } from "../utils/AppError.js";
 
-export async function createProduct(req, res) {
-  try {
-    const product = new Product(req.body);
-    const savedProduct = await product.save();
-    console.log("REQUEST BODY: ", req.body);
-    res.status(201).json({ success: true, data: savedProduct });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+export const addProduct = asyncHandler(async (req, res) => {
+  const product = new Product(req.body);
+  const savedProduct = await product.save();
+  console.log("REQUEST BODY: ", req.body);
+  res.status(201).json({ success: true, data: savedProduct });
+});
+
+export const findAllProducts = asyncHandler(async (req, res) => {
+  console.log("Fetching all products from DB...");
+  const allProducts = await Product.find({});
+  res.status(200).json({ success: true, data: allProducts });
+});
+
+export const findProductById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const product = await Product.findById(id);
+  if (!product) {
+    throw new AppError("Product is not found", 404);
   }
-}
+  res.status(200).json({ success: true, data: product });
+});
 
-export async function findAllProducts(req, res) {
-  try {
-    console.log("Fetching all products from DB...");
-    const allProducts = await Product.find({});
-    res.status(200).json({ success: true, data: allProducts });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+export const findProductsByName = asyncHandler(async (req, res) => {
+  const { name } = req.body;
+  const products = await Product.find({
+    name: { $regex: name, $options: "i" },
+  });
+  if (!products || products.length === 0) {
+    throw new AppError("Product are not found", 404);
   }
-}
+  res.status(200).json({ success: true, data: products });
+});
 
-export async function findProductById(req, res) {
-  try {
-    const { id } = req.params;
-    const product = await Product.findById(id);
-    if (!product) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product is not found" });
-    }
-    res.status(200).json({ success: true, data: product });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+export const updateProduct = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const updatedProduct = await Product.findByIdAndUpdate(id, req.body, {
+    runValidators: true,
+    returnDocument: "after",
+  });
+
+  if (!updatedProduct) {
+    throw new AppError("Product is not found", 404);
   }
-}
+  res.status(200).json({ success: true, data: updatedProduct });
+});
 
-export async function updateProduct(req, res) {
-  try {
-    const { id } = req.params;
-    const updatedProduct = await Product.findByIdAndUpdate(id, req.body, {
-      runValidators: true,
-      returnDocument: "after",
-    });
-
-    if (!updatedProduct) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product is not found" });
-    }
-    res.status(200).json({ success: true, data: updatedProduct });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+export const deleteProductById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const deletedProduct = await Product.findByIdAndDelete(id);
+  if (!deletedProduct) {
+    throw new AppError("Product is not found", 404);
   }
-}
-
-export async function deleteProductById(req, res) {
-  try {
-    const { id } = req.params;
-    const deletedProduct = await Product.findByIdAndDelete(id);
-    if (!deletedProduct) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product is not found" });
-    }
-    res.status(200).json({ success: true, data: deletedProduct });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-}
+  res.status(200).json({ success: true, data: deletedProduct });
+});

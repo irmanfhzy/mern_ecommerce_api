@@ -1,26 +1,21 @@
-import argon2 from "argon2";
 import User from "../models/User.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { AppError } from "../utils/AppError.js";
 
-export async function findUser(req, res) {
-  try {
-    const { name } = req.query;
-    const users = User.find({ name: { $regex: name, $options: i } });
-    if (!users) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Users are not found" });
-    }
-
-    (res.status(200), json({ success: true, data: users }));
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+export const findUser = asyncHandler(async (req, res) => {
+  const { name } = req.query;
+  const users = User.find({ name: { $regex: name, $options: "i" } });
+  if (!users || users.length === 0) {
+    throw new AppError("Users are not found", 404);
   }
-}
+  res.status(200).json({ success: true, data: users });
+});
 
-export async function updateProfile(req, res) {
-  try {
-    const { name, gender, dataOfBirth, image } = req.body;
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-}
+export const updateProfile = asyncHandler(async (req, res) => {
+  const { name, gender, dataOfBirth, image } = req.body;
+});
+
+export const getProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.userId).select("-password");
+  res.json({ success: true, data: user });
+});

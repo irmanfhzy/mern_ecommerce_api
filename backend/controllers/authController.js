@@ -1,7 +1,11 @@
 import User from "../models/User.js";
 import argon2 from "argon2";
 import normalizePhone from "../utils/phoneNormalizer.js";
-import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from "../utils/jwt.js";
 import { AppError } from "../utils/AppError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
@@ -32,11 +36,12 @@ export const register = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const { email, username, phone, password } = req.body;
+  let { identifier, password } = req.body;
 
-  const normalizedPhone = normalizePhone(phone);
+  if (/^(\+?628|08|8)[0-9]{8,11}$/.test(identifier)) {
+    identifier = normalizePhone(identifier);
+  }
 
-  const identifier = email || username || normalizedPhone;
   if (!identifier || !password) {
     throw new AppError(
       "Email, username, or phone and password are required",
@@ -76,13 +81,13 @@ export const login = asyncHandler(async (req, res) => {
   });
 });
 
-export const refreshToken = asyncHandler(async (req, res) => {
+export const refreshAccessToken = asyncHandler(async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) {
     throw new AppError("Refresh token is required", 400);
   }
 
-  const decode = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+  const decode = verifyRefreshToken(refreshToken);
   const user = await User.findById(decode.userId).select("+refreshToken");
   if (!user || user.refreshToken !== refreshToken) {
     throw new AppError("Invalid refresh token", 401);
@@ -95,9 +100,4 @@ export const refreshToken = asyncHandler(async (req, res) => {
 export const logout = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(req.user.userId, { refreshToken: null });
   res.json({ success: true, message: "Logged out successfully" });
-});
-
-export const getProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.userId).select("-password");
-  res.json({ success: true, data: user });
 });

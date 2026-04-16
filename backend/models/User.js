@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import normalizePhone from "../utils/phoneNormalizer";
 
 const userSchema = mongoose.Schema(
   {
@@ -64,16 +65,12 @@ const userSchema = mongoose.Schema(
 userSchema.index({ name: 1, email: 1 });
 
 userSchema.pre("save", function () {
-  if (this.phone && this.phone.startsWith("08")) {
-    this.phone = "+62" + this.phone.slice(1);
-  }
+  this.phone = normalizePhone(this.phone);
 });
 
 userSchema.pre("findOneAndUpdate", function () {
   const update = this.getUpdate();
-  if (update?.phone && update?.phone.startsWith("08")) {
-    update.phone = "+62" + update.phone.slice(1);
-  }
+  update.phone = normalizePhone(update.phone);
 });
 
 userSchema.set("toJSON", {
