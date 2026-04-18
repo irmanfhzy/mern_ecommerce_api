@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import normalizePhone from "../utils/phoneNormalizer";
+import normalizePhone from "../utils/phoneNormalizer.js";
 
 const userSchema = mongoose.Schema(
   {

@@ -4,6 +4,7 @@ import express from "express";
 import connectDB from "./config/database.js";
 import productRoutes from "./routes/productRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 import cors from "cors";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
@@ -17,6 +18,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 
 async function startServer() {

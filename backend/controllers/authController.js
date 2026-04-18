@@ -10,13 +10,24 @@ import { AppError } from "../utils/AppError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const register = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password) {
+  const { name, email, password, confirmPassword } = req.body;
+  if (!name || !email || !password || !confirmPassword) {
     throw new AppError("Name, email, and password are required", 400);
   }
 
   if (password.length < 8) {
     throw new AppError("Password must be at least 8 characters long", 400);
+  }
+
+  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)\S+$/.test(password)) {
+    throw new AppError(
+      "Password must include uppercase, lowercase, number, and no spaces",
+      400,
+    );
+  }
+
+  if (password !== confirmPassword) {
+    throw new AppError("Password and password confimation do not match", 400);
   }
 
   const existingUser = await User.findOne({ email });

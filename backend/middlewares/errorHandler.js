@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 export function errorHandler(err, req, res, next) {
   if (err instanceof mongoose.Error.CastError) {
@@ -22,11 +22,11 @@ export function errorHandler(err, req, res, next) {
       .json({ success: false, message: `${field} already exist` });
   }
 
-  if (err instanceof TokenExpiredError) {
+  if (err instanceof jwt.TokenExpiredError) {
     return res.status(401).json({ success: false, message: "Token expired" });
   }
 
-  if (err instanceof JsonWebTokenError) {
+  if (err instanceof jwt.JsonWebTokenError) {
     return res.status(401).json({ success: false, message: "Invalid token" });
   }
 

@@ -1,7 +1,7 @@
 import express from "express";
 import validateObjectId from "../middlewares/objectIdValidator.js";
 import {
-  createProduct,
+  addProduct,
   deleteProductById,
   findAllProducts,
   findProductById,
@@ -10,7 +10,7 @@ import {
 
 const router = express.Router();
 
-router.post("/", createProduct);
+router.post("/", addProduct);
 
 router.get("/", findAllProducts);
 
