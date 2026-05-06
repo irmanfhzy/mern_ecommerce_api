@@ -7,10 +7,9 @@ import {
   verifyRefreshToken,
 } from "../utils/jwt.js";
 import { AppError } from "../utils/AppError.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
 
-export const register = asyncHandler(async (req, res) => {
-  const { name, email, password, confirmPassword } = req.body;
+export const register = async (body) => {
+  const { name, email, password, confirmPassword } = body;
   if (!name || !email || !password || !confirmPassword) {
     throw new AppError("Name, email, and password are required", 400);
   }
@@ -19,7 +18,7 @@ export const register = asyncHandler(async (req, res) => {
     throw new AppError("Password must be at least 8 characters long", 400);
   }
 
-  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)\S+$/.test(password)) {
+  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/.test(password)) {
     throw new AppError(
       "Password must include uppercase, lowercase, number, and no spaces",
       400,
@@ -43,11 +42,11 @@ export const register = asyncHandler(async (req, res) => {
     role: "user",
   });
 
-  res.status(201).json({ success: true, data: user });
-});
+  return user;
+};
 
-export const login = asyncHandler(async (req, res) => {
-  let { identifier, password } = req.body;
+export const login = async (body) => {
+  let { identifier, password } = body;
 
   if (/^(\+?628|08|8)[0-9]{8,11}$/.test(identifier)) {
     identifier = normalizePhone(identifier);
@@ -79,8 +78,8 @@ export const login = asyncHandler(async (req, res) => {
 
   user.refreshToken = refreshToken;
   await user.save();
-  res.json({
-    success: true,
+
+  return {
     accessToken,
     refreshToken,
     data: {
@@ -89,11 +88,11 @@ export const login = asyncHandler(async (req, res) => {
       email: user.email,
       role: user.role,
     },
-  });
-});
+  };
+};
 
-export const refreshAccessToken = asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
+export const refreshAccessToken = async (body) => {
+  const { refreshToken } = body;
   if (!refreshToken) {
     throw new AppError("Refresh token is required", 400);
   }
@@ -105,10 +104,10 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 
   const newAccessToken = generateAccessToken(user._id);
-  res.json({ success: true, accessToken: newAccessToken });
-});
 
-export const logout = asyncHandler(async (req, res) => {
-  await User.findByIdAndUpdate(req.user.userId, { refreshToken: null });
-  res.json({ success: true, message: "Logged out successfully" });
-});
+  return newAccessToken;
+};
+
+export const logout = async (userId) => {
+  await User.findByIdAndUpdate(userId, { refreshToken: null });
+};

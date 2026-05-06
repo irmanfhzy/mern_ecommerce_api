@@ -1,6 +1,49 @@
 import mongoose from "mongoose";
 import normalizePhone from "../utils/phoneNormalizer.js";
 
+const addressSchema = new mongoose.Schema({
+  label: {
+    type: String,
+    default: "",
+  },
+  recipientName: {
+    type: String,
+    required: true,
+  },
+  phone: {
+    type: String,
+    required: true,
+  },
+  street: {
+    type: String,
+    required: true,
+  },
+  village: {
+    type: String,
+    required: true,
+  },
+  district: {
+    type: String,
+    required: true,
+  },
+  city: {
+    type: String,
+    required: true,
+  },
+  province: {
+    type: String,
+    required: true,
+  },
+  postalCode: {
+    type: String,
+    required: true,
+  },
+  isDefault: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 const userSchema = mongoose.Schema(
   {
     name: {
@@ -54,6 +97,10 @@ const userSchema = mongoose.Schema(
       default: "user",
       required: true,
     },
+    addresses: {
+      type: [addressSchema],
+      default: [],
+    },
     refreshToken: {
       type: String,
       select: false,
@@ -62,15 +109,20 @@ const userSchema = mongoose.Schema(
   { timestamps: true },
 );
 
-userSchema.index({ name: 1, email: 1 });
+userSchema.index({ name: "text" });
 
 userSchema.pre("save", function () {
-  this.phone = normalizePhone(this.phone);
+  if (this.phone) {
+    this.phone = normalizePhone(this.phone);
+  }
 });
 
 userSchema.pre("findOneAndUpdate", function () {
   const update = this.getUpdate();
-  update.phone = normalizePhone(update.phone);
+
+  if (update.phone) {
+    update.phone = normalizePhone(update.phone);
+  }
 });
 
 userSchema.set("toJSON", {

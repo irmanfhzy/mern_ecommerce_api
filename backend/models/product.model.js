@@ -15,16 +15,20 @@ const productSchema = new mongoose.Schema(
       type: String,
       maxlength: 1000,
     },
-
     image: {
-      type: [String],
-      required: false,
+      type: String,
+      default: null,
+      trim: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true },
 );
 
-productSchema.index({ name: 1 });
+productSchema.index({ name: "text", brand: "text", description: "text" });
 
 const Product = mongoose.model("Product", productSchema);
 
