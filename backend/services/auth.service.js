@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../models/User.js";
 import argon2 from "argon2";
 import normalizePhone from "../utils/phoneNormalizer.js";
@@ -6,28 +7,17 @@ import {
   generateRefreshToken,
   verifyRefreshToken,
 } from "../utils/jwt.js";
+import * as checker from "../utils/errorChecker.js";
 import { AppError } from "../utils/AppError.js";
 
 export const register = async (body) => {
   const { name, email, password, confirmPassword } = body;
-  if (!name || !email || !password || !confirmPassword) {
-    throw new AppError("Name, email, and password are required", 400);
-  }
+  checker.checkInputs({ name, email, password, confirmPassword });
+  checker.checkPassword({ type: "register", password, confirmPassword });
 
-  if (password.length < 8) {
-    throw new AppError("Password must be at least 8 characters long", 400);
-  }
-
-  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/.test(password)) {
-    throw new AppError(
-      "Password must include uppercase, lowercase, number, and no spaces",
-      400,
-    );
-  }
-
-  if (password !== confirmPassword) {
-    throw new AppError("Password and password confimation do not match", 400);
-  }
+  const session = await mongoose.startSession();
+  try {
+  } catch (error) {}
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -48,16 +38,12 @@ export const register = async (body) => {
 export const login = async (body) => {
   let { identifier, password } = body;
 
+  checker.checkInputs({ identifier, password });
+
   if (/^(\+?628|08|8)[0-9]{8,11}$/.test(identifier)) {
     identifier = normalizePhone(identifier);
   }
 
-  if (!identifier || !password) {
-    throw new AppError(
-      "Email, username, or phone and password are required",
-      400,
-    );
-  }
   const user = await User.findOne({
     $or: [
       { email: identifier },
@@ -65,13 +51,12 @@ export const login = async (body) => {
       { phone: identifier },
     ],
   }).select("+password +refreshToken");
-  if (!user) {
-    throw new AppError("Email, username, or phone are not found", 404);
-  }
+
+  checker.checkDoc(user, "Invalid credentials", 401);
 
   const isPasswordValid = await argon2.verify(user.password, password);
   if (!isPasswordValid) {
-    throw new AppError("Wrong password", 400);
+    throw new AppError("Invalid credentials", 401);
   }
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
@@ -93,9 +78,7 @@ export const login = async (body) => {
 
 export const refreshAccessToken = async (body) => {
   const { refreshToken } = body;
-  if (!refreshToken) {
-    throw new AppError("Refresh token is required", 400);
-  }
+  checker.checkInputs({ refreshToken });
 
   const decode = verifyRefreshToken(refreshToken);
   const user = await User.findById(decode.userId).select("+refreshToken");

@@ -1,5 +1,6 @@
 import Product from "../models/product.model.js";
 import Variant from "../models/variant.model.js";
+import * as checker from "../utils/errorChecker.js";
 import { AppError } from "../utils/AppError.js";
 
 const attachPriceRange = (products, variants) => {
@@ -16,9 +17,13 @@ const attachPriceRange = (products, variants) => {
     let priceRange = null;
 
     if (productVariants.length) {
-      const prices = productVariants.map((variant) => variant.price);
-      const min = Math.min(...prices);
-      const max = Math.max(...prices);
+      let min = Infinity;
+      let max = -Infinity;
+
+      for (const variant of productVariants) {
+        if (variant.price < min) min = variant.price;
+        if (variant.price > max) max = variant.price;
+      }
       priceRange = {
         min,
         max,
@@ -34,9 +39,7 @@ const attachPriceRange = (products, variants) => {
 
 export const addProduct = async (body) => {
   const { name, brand, description, image } = body;
-  if (!name) {
-    throw new AppError("Product name is required", 400);
-  }
+  checker.checkInputs({ name });
   return await Product.create({ name, brand, description, image });
 };
 
@@ -79,15 +82,14 @@ export const getAdminProducts = async (query = {}) => {
 };
 
 export const getPublicProducts = async (query = {}) => {
-  const limit = parseInt(query.limit, 10) || 10;
+  const limit = Math.min(parseInt(query.limit, 10) || 10, 50);
   const lastId = query.lastId;
 
   const filter = {};
   if (query.brand) filter.brand = query.brand;
 
-  if (lastId) {
-    filter._id = { $lt: lastId };
-  }
+  checker.checkObjectId(lastId, "Invalid cursor");
+  filter._id = { $lt: lastId };
 
   const products = await Product.find(filter)
     .sort({ _id: -1 })
@@ -115,9 +117,7 @@ export const getPublicProducts = async (query = {}) => {
 export const getProductById = async (id) => {
   const product = await Product.findById(id).lean();
 
-  if (!product) {
-    throw new AppError("Product not found", 404);
-  }
+  checker.checkDoc(product, "Product not found");
 
   const variants = await Variant.find({ productId: id }).lean();
 
@@ -161,27 +161,18 @@ export const updateProductById = async (id, body) => {
   if (description !== undefined) updatedData.description = description;
   if (image !== undefined) updatedData.image = image;
 
-  const updatedProduct = await Product.findByIdAndUpdate(
-    id,
-    { updatedData },
-    {
-      runValidators: true,
-      returnDocument: "after",
-    },
-  );
-  if (!updatedProduct) {
-    throw new AppError("Product not found", 404);
-  }
-
+  const updatedProduct = await Product.findByIdAndUpdate(id, updatedData, {
+    runValidators: true,
+    returnDocument: "after",
+  });
+  checker.checkDoc(updatedProduct, "Product not found");
   return updatedProduct;
 };
 
 export const deleteProductById = async (id) => {
   const deletedProduct = await Product.findByIdAndDelete(id);
 
-  if (!deletedProduct) {
-    throw new AppError("Product not found", 404);
-  }
+  checker.checkDoc(deletedProduct, "Product not found");
 
   await Variant.deleteMany({ productId: id });
 

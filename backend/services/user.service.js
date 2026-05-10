@@ -1,23 +1,18 @@
-import User from "../models/user.model.js";
+import mongoose from "mongoose";
 import argon2 from "argon2";
+import User from "../models/user.model.js";
+import * as checker from "../utils/errorChecker.js";
 import { AppError } from "../utils/AppError.js";
 
 export const findUsers = async (name) => {
-  if (!name) {
-    throw new AppError("Search name is required", 400);
-  }
+  checker.checkInputs({ name }, "name is required for searching users");
   const users = await User.find({ $text: { $search: name } }).lean();
-  if (!users || users.length === 0) {
-    return [];
-  }
   return users;
 };
 
 export const getProfile = async (userId) => {
   const user = await User.findById(userId).select("-password").lean();
-  if (!user) {
-    throw new AppError("User not found", 404);
-  }
+  checker.checkDoc(user, "User not found");
   return user;
 };
 
@@ -25,41 +20,45 @@ export const updateProfile = async (userId, body) => {
   const { name, gender, dateOfBirth, image } = body;
 
   const updatedData = {};
-  if (name) updatedData.name = name;
-  if (gender) updatedData.gender = gender;
-  if (dateOfBirth) updatedData.dateOfBirth = dateOfBirth;
-  if (image) updatedData.image = image;
+  if (name !== undefined) updatedData.name = name;
+  if (gender !== undefined) updatedData.gender = gender;
+  if (dateOfBirth !== undefined) updatedData.dateOfBirth = dateOfBirth;
+  if (image !== undefined) updatedData.image = image;
+
+  if (Object.keys(updatedData).length === 0) {
+    throw new AppError("No data to update", 400);
+  }
 
   const user = await User.findByIdAndUpdate(userId, updatedData, {
     runValidators: true,
     returnDocument: "after",
   });
-  if (!user) {
-    throw new AppError("User is not found", 404);
-  }
+  checker.checkDoc(user, "User not found");
   return user.toObject();
 };
 
 export const updateAccount = async (userId, body) => {
   const { email, username, phone } = body;
 
-  if (phone && !/^(08|\+628)[0-9]{8,11}$/.test(String(phone))) {
-    throw new AppError("Invalid phone number", 400);
-  }
-
   const updatedData = {};
-  if (email && typeof email === "string") updatedData.email = email;
-  if (username && typeof username === "string") updatedData.username = username;
-  if (phone && typeof phone === "string") updatedData.phone = phone;
+  if (email && typeof email === "string") {
+    checker.checkEmail(email);
+    updatedData.email = email;
+  }
+  if (username && typeof username === "string") {
+    updatedData.username = username;
+  }
+  if (phone && typeof phone === "string") {
+    checker.checkPhone(phone);
+    updatedData.phone = phone;
+  }
 
   const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
     runValidators: true,
     returnDocument: "after",
   });
 
-  if (!updatedUser) {
-    throw new AppError("User not found", 404);
-  }
+  checker.checkDoc(updatedUser, "User not found");
 
   return updatedUser.toObject();
 };
@@ -76,72 +75,83 @@ export const addAddress = async (userId, body) => {
     postalCode,
   } = body;
 
-  let { label, isDefault } = body;
+  checker.checkInputs(
+    {
+      recipientName,
+      phone,
+      street,
+      village,
+      district,
+      city,
+      province,
+      postalCode,
+    },
+    "Address must be completed",
+  );
 
-  if (
-    !recipientName ||
-    !phone ||
-    !street ||
-    !village ||
-    !district ||
-    !city ||
-    !province ||
-    !postalCode
-  ) {
-    throw new AppError("Address must be completed", 400);
-  }
+  let { label, isDefault } = body;
 
   if (!label) label = "";
   if (typeof isDefault !== "boolean") isDefault = false;
 
-  const userAddress = await User.findById(userId).select("addresses");
+  const session = await mongoose.startSession();
 
-  if (!userAddress) {
-    throw new AppError("User not found", 404);
-  }
+  try {
+    session.startTransaction();
 
-  if (userAddress.addresses.length >= 5) {
-    throw new AppError("Only 5 addresses allowed", 400);
-  }
+    const userAddress = await User.findById(userId).select("addresses");
+    checker.checkDoc(userAddress, "User not found");
 
-  if (userAddress.addresses.length === 0) isDefault = true;
+    if (userAddress.addresses.length >= 5) {
+      throw new AppError("Only 5 addresses allowed", 400);
+    }
 
-  if (isDefault === true) {
-    await User.updateOne(
-      { _id: userId },
+    if (userAddress.addresses.length === 0) isDefault = true;
+    if (isDefault === true) {
+      await User.updateOne(
+        { _id: userId },
+        {
+          $set: {
+            "addresses.$[elem].isDefault": false,
+          },
+        },
+        {
+          session,
+          arrayFilters: [{ "elem.isDefault": true }],
+        },
+      );
+    }
+
+    const addedAddress = await User.findByIdAndUpdate(
+      userId,
       {
-        $set: {
-          "addresses.$[elem].isDefault": false,
+        $push: {
+          addresses: {
+            label,
+            recipientName,
+            phone,
+            street,
+            village,
+            district,
+            city,
+            province,
+            postalCode,
+            isDefault,
+          },
         },
       },
-      {
-        arrayFilters: [{ "elem.isDefault": true }],
-      },
+      { session, runValidators: true, returnDocument: "after" },
     );
+
+    await session.commitTransaction();
+
+    return addedAddress;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
-
-  const addedAddress = await User.findByIdAndUpdate(
-    userId,
-    {
-      $push: {
-        addresses: {
-          label,
-          recipientName,
-          phone,
-          street,
-          village,
-          district,
-          city,
-          province,
-          postalCode,
-          isDefault,
-        },
-      },
-    },
-    { runValidators: true, returnDocument: "after" },
-  );
-
-  return addedAddress;
 };
 
 export const updateAddress = async (userId, addressId, body) => {
@@ -156,20 +166,21 @@ export const updateAddress = async (userId, addressId, body) => {
     postalCode,
   } = body;
 
-  let { label, isDefault } = body;
+  checker.checkInputs(
+    {
+      recipientName,
+      phone,
+      street,
+      village,
+      district,
+      city,
+      province,
+      postalCode,
+    },
+    "Address must be completed",
+  );
 
-  if (
-    !recipientName ||
-    !phone ||
-    !street ||
-    !village ||
-    !district ||
-    !city ||
-    !province ||
-    !postalCode
-  ) {
-    throw new AppError("Address must be completed", 400);
-  }
+  let { label, isDefault } = body;
 
   if (!label) label = "";
   if (typeof isDefault !== "boolean") isDefault = undefined;
@@ -187,20 +198,6 @@ export const updateAddress = async (userId, addressId, body) => {
     throw new AppError("Default address cannot be deactivated", 400);
   }
 
-  if (isDefault === true) {
-    await User.updateOne(
-      { _id: userId },
-      {
-        $set: {
-          "addresses.$[elem].isDefault": false,
-        },
-      },
-      {
-        arrayFilters: [{ "elem.isDefault": true }],
-      },
-    );
-  }
-
   const updatedData = {
     "addresses.$.label": label,
     "addresses.$.recipientName": recipientName,
@@ -215,91 +212,132 @@ export const updateAddress = async (userId, addressId, body) => {
 
   if (isDefault !== undefined) updatedData["addresses.$.isDefault"] = isDefault;
 
-  const updatedAddress = await User.findOneAndUpdate(
-    { _id: userId, "addresses._id": addressId },
-    {
-      $set: updatedData,
-    },
-    { runValidators: true, returnDocument: "after" },
-  );
+  const session = await mongoose.startSession();
 
-  return updatedAddress;
+  try {
+    session.startTransaction();
+
+    if (isDefault === true) {
+      await User.updateOne(
+        { _id: userId },
+        {
+          $set: {
+            "addresses.$[elem].isDefault": false,
+          },
+        },
+        {
+          session,
+          arrayFilters: [{ "elem.isDefault": true }],
+        },
+      );
+    }
+
+    const updatedAddress = await User.findOneAndUpdate(
+      { _id: userId, "addresses._id": addressId },
+      {
+        $set: updatedData,
+      },
+      { session, runValidators: true, returnDocument: "after" },
+    );
+
+    await session.commitTransaction();
+
+    return updatedAddress;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
 
 export const deleteAddress = async (userId, addressId) => {
-  const user = await User.findOne(
-    { _id: userId, "addresses._id": addressId },
-    { "addresses.$": 1 },
-  );
+  const session = await mongoose.startSession();
 
-  if (!user || !user.addresses[0]) {
-    throw new AppError("Address not found", 404);
-  }
+  try {
+    session.startTransaction();
 
-  await User.updateOne(
-    { _id: userId },
-    {
-      $pull: {
-        addresses: { _id: addressId },
+    const user = await User.findOne(
+      {
+        _id: userId,
+        "addresses._id": addressId,
       },
-    },
-  );
+      {
+        "addresses.$": 1,
+      },
+    ).session(session);
 
-  const isDefault = user.addresses[0].isDefault;
-  const leftAddresses = await User.findById(userId).select("addresses").lean();
+    if (!user) {
+      throw new AppError("Address not found", 404);
+    }
 
-  if (isDefault && leftAddresses.addresses.length > 0) {
-    const newDefaultAddressId = leftAddresses.addresses[0]._id;
+    const isDefault = user.addresses[0].isDefault;
 
     await User.updateOne(
-      { _id: userId, "addresses._id": newDefaultAddressId },
+      { _id: userId },
       {
-        $set: { "addresses.$.isDefault": true },
+        $pull: {
+          addresses: { _id: addressId },
+        },
       },
+      { session },
     );
-    return {
-      deletedAddressId: addressId,
-      newDefaultAddressId,
-    };
-  }
 
-  return {
-    deletedAddressId: addressId,
-  };
+    let result = {
+      deletedAddressId: addressId,
+    };
+
+    if (isDefault) {
+      const updatedUser = await User.findById(userId)
+        .select("addresses")
+        .session(session)
+        .lean();
+
+      if (updatedUser && updatedUser.addresses.length > 0) {
+        const newDefaultAddressId = updatedUser.addresses[0]._id;
+
+        await User.updateOne(
+          {
+            _id: userId,
+            "addresses._id": newDefaultAddressId,
+          },
+          {
+            $set: {
+              "addresses.$.isDefault": true,
+            },
+          },
+          { session },
+        );
+
+        result.newDefaultAddressId = newDefaultAddressId;
+      }
+    }
+
+    await session.commitTransaction();
+
+    return result;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 };
 
 export const changePassword = async (userId, body) => {
   const { currentPassword, newPassword, confirmNewPassword } = body;
+  checker.checkInputs({ currentPassword, newPassword, confirmNewPassword });
 
-  if (!currentPassword || !newPassword || !confirmNewPassword) {
-    throw new AppError(
-      "Current password, new password, and confirm new password are required",
-      400,
-    );
-  }
-
-  if (newPassword.length < 8) {
-    throw new AppError("New password must be at least 8 characters long", 400);
-  }
-
-  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)\S+$/.test(newPassword)) {
-    throw new AppError(
-      "New password must contain at least one uppercase letter, one lowercase letter, and one number",
-      400,
-    );
-  }
-
-  if (newPassword !== confirmNewPassword) {
-    throw new AppError(
-      "New password and confirm new password do not match",
-      400,
-    );
-  }
+  checker.checkPassword({
+    type: "change",
+    currentPassword,
+    password: newPassword,
+    confirmPassword: confirmNewPassword,
+  });
 
   const user = await User.findById(userId).select("+password");
-  if (!user) {
-    throw new AppError("User is not found", 404);
-  }
+  checker.checkDoc(user, "User not found");
+
   const isCurrentPasswordValid = await argon2.verify(
     user.password,
     currentPassword,
@@ -316,8 +354,6 @@ export const changePassword = async (userId, body) => {
 
 export const deleteUserById = async (userId) => {
   const deletedUser = await User.findByIdAndDelete(userId);
-  if (!deletedUser) {
-    throw new AppError("User is not found", 404);
-  }
+  checker.checkDoc(deletedUser, "User not found");
   return deletedUser;
 };
