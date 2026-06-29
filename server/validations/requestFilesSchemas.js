@@ -1,0 +1,57 @@
+const requestFilesSchemas = {
+  profile: {
+    update: {
+      avatar: {
+        max: 1,
+      },
+    },
+  },
+
+  product: {
+    create: {
+      images: {
+        required: true,
+        min: 1,
+        max: 10,
+      },
+    },
+
+    update: {
+      images: {
+        min: 1,
+        max: 10,
+      },
+    },
+  },
+
+  variant: {
+    create: {
+      images: {
+        required: true,
+        min: 1,
+        max: 10,
+      },
+    },
+
+    update: {
+      images: {
+        min: 1,
+        max: 10,
+      },
+    },
+  },
+
+  appSetting: {
+    save: {
+      logo: {
+        max: 1,
+      },
+
+      favicon: {
+        max: 1,
+      },
+    },
+  },
+};
+
+export default requestFilesSchemas;
