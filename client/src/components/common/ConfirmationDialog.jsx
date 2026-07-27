@@ -11,6 +11,7 @@ export default function ConfirmationDialog({
   cancelText = "Cancel",
   onConfirm,
   onCancel,
+  disabled = false,
 }) {
   return (
     <Modal isOpen={isOpen} onClose={onCancel} title={title}>
@@ -21,7 +22,11 @@ export default function ConfirmationDialog({
           {cancelText}
         </Button>
 
-        <Button variant={confirmVariant} onClick={onConfirm}>
+        <Button
+          variant={confirmVariant}
+          onClick={onConfirm}
+          disabled={disabled}
+        >
           {confirmText}
         </Button>
       </div>

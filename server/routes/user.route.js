@@ -9,6 +9,7 @@ import {
   searchUsersController,
   getProfileController,
   updateProfileController,
+  updateProfilePictureController,
   updateEmailController,
   updateUsernameController,
   updatePhoneController,
@@ -35,10 +36,15 @@ router.get("/profile", getProfileController);
 
 router.patch(
   "/profile",
-  upload.single("image"),
   validateRequestBody(requestBodySchemas.profile.update),
   normalizeRequestBody(rules.profile),
   updateProfileController,
+);
+
+router.patch(
+  "/profile/picture/change",
+  upload.single("image"),
+  updateProfilePictureController,
 );
 
 router.patch(

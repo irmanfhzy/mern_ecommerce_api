@@ -2,16 +2,18 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import { CartContext } from "../../contexts/CartContext";
+import { ConfirmationDialogContext } from "../../contexts/ConfirmationDialogContext";
 
 import Button from "../../components/common/Button";
 import AddressCard from "../../components/user/AddressCard";
+import OrderItemCard from "../../components/user/OrderItemCard";
 
-import formatPrice from "../../utils/formatPrice";
-import { getImageUrl } from "../../utils/imageHelpers";
+import formatPrice from "../../utils/priceFormatter";
+
 import { createOrder } from "../../services/order.service";
 import { getProfile } from "../../services/user.service";
 
-import { PAYMENT } from "@ecommerce/shared/constants";
+import { PAYMENT_METHOD } from "@ecommerce/shared/constants";
 import Modal from "../../components/common/Modal";
 
 export default function Checkout() {
@@ -20,13 +22,14 @@ export default function Checkout() {
   const location = useLocation();
 
   const { cart } = useContext(CartContext);
+  const { openDialog, closeDialog } = useContext(ConfirmationDialogContext);
 
   const [selectedVariantIds, setSelectedVariantIds] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [pendingAddressId, setPendingAddressId] = useState(null);
-  const [payment, setPayment] = useState(PAYMENT.COD);
+  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHOD.COD);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
   const checkoutItems = useMemo(() => {
@@ -34,6 +37,17 @@ export default function Checkout() {
       selectedVariantIds.includes(item.variantId._id),
     );
   }, [cart.items, selectedVariantIds]);
+
+  const orderItems = useMemo(() => {
+    return checkoutItems.map((item) => ({
+      variantId: item.variantId._id,
+      productName: item.variantId.productId.name,
+      variantImage: item.variantId.images?.[0]?.url,
+      attributes: item.variantId.attributes,
+      price: item.priceAtAdded,
+      quantity: item.quantity,
+    }));
+  }, [checkoutItems]);
 
   useEffect(() => {
     const checkoutItems = JSON.parse(
@@ -44,7 +58,6 @@ export default function Checkout() {
       navigate("/cart", { replace: true });
       return;
     }
-
     setSelectedVariantIds(checkoutItems);
   }, [navigate]);
 
@@ -54,16 +67,22 @@ export default function Checkout() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const res = await getProfile();
+      try {
+        const res = await getProfile();
 
-      const addresses = res.data.data.addresses;
+        const addresses = res.data.data.addresses;
 
-      setAddresses(addresses);
+        setAddresses(addresses);
 
-      const defaultAddress = addresses.find((address) => address.isDefault);
+        const defaultAddress = addresses.find((address) => address.isDefault);
 
-      if (defaultAddress) {
-        setSelectedAddressId(defaultAddress._id);
+        if (defaultAddress) {
+          setSelectedAddressId(defaultAddress._id);
+        }
+      } catch (error) {
+        alert(error.response?.data?.message || error.message);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -88,7 +107,7 @@ export default function Checkout() {
   }, [checkoutItems]);
 
   const handleChangePayment = (e) => {
-    setPayment(e.target.value);
+    setPaymentMethod(e.target.value);
   };
 
   const handleOpenAddressModal = () => {
@@ -102,7 +121,7 @@ export default function Checkout() {
   };
 
   const handleAddAddress = () => {
-    navigate("/addresses/new", {
+    navigate("/profile/addresses/new", {
       state: {
         from: location.pathname,
       },
@@ -116,26 +135,24 @@ export default function Checkout() {
       const payload = {
         items: checkoutItems.map((item) => ({
           variantId: item.variantId._id,
-          name: item.variantId.productId.name,
-          attributes: item.variantId.attributes,
-          price: item.priceAtAdded,
           quantity: item.quantity,
         })),
 
         totalPrice: summary.totalPrice,
-        payment: payment,
-        shippingAddress: { ...selectedAddress },
+        paymentMethod,
+        shippingAddress: selectedAddress,
       };
 
       const res = await createOrder(payload);
 
       localStorage.removeItem("checkoutItems");
 
-      navigate(`/orders/${res.data.data._id}`);
+      navigate(`/my-orders/${res.data.data._id}`);
     } catch (error) {
       alert(error.response?.data?.message || error.message);
     } finally {
       setLoading(false);
+      closeDialog();
     }
   };
 
@@ -186,54 +203,25 @@ export default function Checkout() {
             <h2 className="mb-4 text-lg font-semibold">Payment Method</h2>
 
             <select
-              name="payment"
-              value={payment}
+              name="payment_method"
+              value={paymentMethod}
               onChange={handleChangePayment}
               className="w-full rounded-lg border p-3 cursor-pointer"
             >
-              <option value={PAYMENT.COD}>Cash On Delivery</option>
+              <option value={PAYMENT_METHOD.COD}>Cash On Delivery</option>
 
-              <option value={PAYMENT.BANK_TRANSFER}>Bank Transfer</option>
+              <option value={PAYMENT_METHOD.BANK_TRANSFER}>
+                Bank Transfer
+              </option>
 
-              <option value={PAYMENT.EWALLET}>E-Wallet</option>
+              <option value={PAYMENT_METHOD.E_WALLET}>E-Wallet</option>
             </select>
           </section>
 
           <section className="rounded-2xl border bg-white p-6">
             <h2 className="mb-6 text-lg font-semibold">Order Items</h2>
 
-            <div className="space-y-4">
-              {checkoutItems.map((item) => (
-                <div
-                  key={item.variantId._id}
-                  className="flex gap-4 border-b pb-4"
-                >
-                  <img
-                    src={getImageUrl(item.variantId.images?.[0])}
-                    alt={item.variantId.productId.name}
-                    className="h-20 w-20 rounded-lg border object-cover"
-                  />
-
-                  <div className="flex-1">
-                    <h3 className="font-medium">
-                      {item.variantId.productId.name}
-                    </h3>
-
-                    <p className="text-sm text-gray-500">
-                      Quantity : {item.quantity}
-                    </p>
-
-                    <p className="mt-2 font-semibold">
-                      {formatPrice(item.priceAtAdded)}
-                    </p>
-                  </div>
-
-                  <div className="font-semibold">
-                    {formatPrice(item.priceAtAdded * item.quantity)}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <OrderItemCard items={orderItems} />
           </section>
         </div>
 
@@ -263,7 +251,17 @@ export default function Checkout() {
           <Button
             className="mt-8 w-full"
             loading={loading}
-            onClick={handlePlaceOrder}
+            onClick={() =>
+              openDialog({
+                title: "Place Order",
+                message: "Are you sure you want to place this order?",
+                confirmVariant: "primary",
+                cancelVariant: "ghost",
+                onConfirm: () => handlePlaceOrder(),
+                loading,
+              })
+            }
+            disabled={!selectedAddressId}
           >
             Place Order
           </Button>
@@ -284,17 +282,25 @@ export default function Checkout() {
             onSelect={(a) => setPendingAddressId(a._id)}
           />
         ))}
-        <div className="flex justify-end">
-          <Button onClick={() => setIsAddressModalOpen(false)} variant="ghost">
-            Cancel
+        <div className="flex justify-between mt-3">
+          <Button onClick={handleAddAddress} className="self-start">
+            Add Address
           </Button>
-          <Button
-            onClick={handleChangeAddress}
-            variant="primary"
-            disabled={pendingAddressId === selectedAddressId}
-          >
-            Choose
-          </Button>
+          <div>
+            <Button
+              onClick={() => setIsAddressModalOpen(false)}
+              variant="ghost"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleChangeAddress}
+              variant="primary"
+              disabled={pendingAddressId === selectedAddressId}
+            >
+              Choose
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

@@ -8,6 +8,7 @@ export default function Modal({
   title,
   children,
   size = "md",
+  className = "",
 }) {
   useEffect(() => {
     if (!isOpen) return;
@@ -37,17 +38,20 @@ export default function Modal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
         className={`
-          relative w-full
-          ${sizes[size]}
-          rounded-2xl
-          bg-white
-          shadow-2xl
-          overflow-hidden
-        `}
+    relative
+    w-full
+    ${sizes[size]}
+    max-h-[90vh]
+    rounded-2xl
+    bg-white
+    shadow-2xl
+    flex
+    flex-col
+  `}
       >
         {(title || onClose) && (
           <div className="flex items-center justify-between border-b px-5 py-4">
@@ -63,7 +67,9 @@ export default function Modal({
           </div>
         )}
 
-        <div className="p-5">{children}</div>
+        <div className={`flex-1 overflow-y-auto p-5 ${className}`}>
+          {children}
+        </div>
       </div>
     </div>,
     document.body,

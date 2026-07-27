@@ -1,17 +1,32 @@
 import noImage from "../assets/no-image.png";
 
-// ambil 1 image paling aman
-export const getImageUrl = (img) => {
-  if (!img) return noImage;
+export const getImageUrl = (
+  img,
+  { fallback = noImage, width, height, crop = "fill" } = {},
+) => {
+  let url = null;
 
-  if (typeof img === "string" && img.trim()) return img;
+  if (!img) {
+    return fallback;
+  }
 
-  if (typeof img === "object" && img.url) return img.url;
+  if (typeof img === "string" && img.trim()) {
+    url = img;
+  } else if (typeof img === "object" && img.url) {
+    url = img.url;
+  }
 
-  return noImage;
+  if (!url) {
+    return fallback;
+  }
+
+  if (width || height) {
+    return url.replace("/upload/", `/upload/w_${width},h_${height},c_${crop}/`);
+  }
+
+  return url;
 };
 
-// ambil array images yang selalu valid (tidak pernah kosong)
 export const normalizeImages = (images) => {
   if (!Array.isArray(images) || images.length === 0) {
     return [noImage];
@@ -21,7 +36,6 @@ export const normalizeImages = (images) => {
   return result.length ? result : [noImage];
 };
 
-// ambil image utama product
 export const getProductImageUrl = (product) => {
   return (
     getImageUrl(product?.image) ||

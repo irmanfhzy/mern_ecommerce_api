@@ -10,11 +10,10 @@ import { addAddress } from "../../services/user.service";
 export default function AddAddress() {
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const {
     form,
-
     provinces,
     cities,
     districts,
@@ -35,9 +34,7 @@ export default function AddAddress() {
 
       await addAddress(form);
 
-      navigate(-1, {
-        replace: true,
-      });
+      navigate(-1);
     } catch (error) {
       alert(error.response?.data?.message || error.message);
     } finally {

@@ -18,96 +18,140 @@ import uploadImage from "../utils/uploadingImage.js";
 
 import { createInventoryHistory } from "./inventoryHistory.service.js";
 
-export const addVariant = async (productId, body, files) => {
-  const { attributes, sku, stock, price } = body;
+export const createVariants = async ({
+  productId,
+  variants,
+  variantFiles = {},
+  uploadedImages = [],
+  session,
+}) => {
+  if (!Array.isArray(variants) || variants.length === 0) {
+    throw new AppError("At least one variant is required", 400);
+  }
 
-  const parsedStock = Number(stock);
-  const parsedPrice = Number(price);
+  const documents = [];
 
+  for (let index = 0; index < variants.length; index++) {
+    const { attributes, sku, stock, costPrice, sellingPrice } = variants[index];
+
+    const parsedStock = Number(stock);
+    const parsedCostPrice = Number(costPrice);
+    const parsedSellingPrice = Number(sellingPrice);
+
+    if (!Array.isArray(attributes) || attributes.length === 0) {
+      throw new AppError("Attributes are required", 400);
+    }
+
+    for (const attribute of attributes) {
+      if (!attribute.key || !attribute.value) {
+        throw new AppError("Each attribute must have key and value", 400);
+      }
+    }
+
+    if (Number.isNaN(parsedStock) || parsedStock < 0) {
+      throw new AppError("Invalid stock value", 400);
+    }
+
+    if (Number.isNaN(parsedCostPrice) || parsedCostPrice < 0) {
+      throw new AppError("Invalid price value", 400);
+    }
+
+    if (Number.isNaN(parsedSellingPrice) || parsedSellingPrice < 0) {
+      throw new AppError("Invalid price value", 400);
+    }
+
+    const variantId = new mongoose.Types.ObjectId();
+
+    const files = variantFiles[index] || [];
+
+    const images = [];
+
+    for (const file of files) {
+      const processedImage = await processImage(
+        file.buffer,
+        IMAGE_CONFIG.VARIANT,
+      );
+
+      const uploaded = await uploadImage(
+        processedImage,
+        `variants/${variantId}`,
+      );
+
+      uploadedImages.push(uploaded);
+
+      images.push({
+        url: uploaded.secure_url,
+        publicId: uploaded.public_id,
+      });
+    }
+
+    documents.push({
+      _id: variantId,
+      productId,
+      attributes,
+      sku,
+      stock: parsedStock,
+      costPrice: parsedCostPrice,
+      sellingPrice: parsedSellingPrice,
+      images,
+    });
+  }
+
+  const createdVariants = await Variant.create(documents, {
+    session,
+  });
+
+  for (const variant of createdVariants) {
+    await createInventoryHistory({
+      variantId: variant._id,
+      type: INVENTORY_TYPE.IN,
+      quantity: variant.stock,
+      reason: INVENTORY_REASON.INITIAL,
+      referenceId: variant._id,
+      session,
+    });
+  }
+
+  return createdVariants;
+};
+
+export const addVariant = async (productId, body, files = []) => {
   const product = await Product.findById(productId);
 
   checker.checkDocument(product, "Product not found", 404);
 
-  if (!Array.isArray(attributes) || attributes.length === 0) {
-    throw new AppError("Attributes are required", 400);
-  }
+  const variants = [body];
 
-  for (const attribute of attributes) {
-    if (!attribute.key || !attribute.value) {
-      throw new AppError("Each attribute must have key and value", 400);
-    }
-  }
-
-  if (Number.isNaN(parsedStock) || parsedStock < 0) {
-    throw new AppError("Invalid stock value", 400);
-  }
-
-  if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
-    throw new AppError("Invalid price value", 400);
-  }
+  const variantFiles = {
+    0: files,
+  };
 
   const session = await mongoose.startSession();
 
-  let uploadedImages = [];
+  const uploadedImages = [];
 
   try {
     session.startTransaction();
 
-    const variantId = new mongoose.Types.ObjectId();
-
-    if (files?.length) {
-      uploadedImages = await Promise.all(
-        files.map(async (file) => {
-          const processedImage = await processImage(
-            file.buffer,
-            IMAGE_CONFIG.VARIANT,
-          );
-
-          const uploadedImage = await uploadImage(
-            processedImage,
-            `variants/${variantId}`,
-          );
-
-          return uploadedImage;
-        }),
-      );
-    }
-    const [variant] = await Variant.create(
-      [
-        {
-          _id: variantId,
-          productId,
-          attributes,
-          sku,
-          stock: parsedStock,
-          price: parsedPrice,
-          images: uploadedImages.map((img) => ({
-            url: img.secure_url,
-            publicId: img.public_id,
-          })),
-        },
-      ],
-      { session },
-    );
-
-    await createInventoryHistory({
-      variantId: variant._id,
-      type: INVENTORY_TYPE.IN,
-      quantity: parsedStock,
-      reason: INVENTORY_REASON.INITIAL,
-      referenceId: variant._id,
+    const createdVariants = await createVariants({
+      productId,
+      variants,
+      variantFiles,
+      uploadedImages,
       session,
     });
 
     await session.commitTransaction();
 
-    return variant;
+    return createdVariants[0];
   } catch (error) {
     await session.abortTransaction();
 
     if (uploadedImages.length) {
       await Promise.allSettled(
-        uploadedImages.map((img) => cloudinary.uploader.destroy(img.public_id)),
+        uploadedImages.map((image) =>
+          cloudinary.uploader.destroy(image.public_id),
+        ),
       );
     }
 
@@ -149,8 +193,8 @@ export const getVariantById = async (id) => {
   return variant;
 };
 
-export const updateVariantById = async (id, body, files) => {
-  const { attributes, sku, price } = body;
+export const updateVariantById = async (id, body, files = {}) => {
+  const { attributes, sku, costPrice, sellingPrice } = body;
 
   const variant = await Variant.findById(id);
 
@@ -176,14 +220,24 @@ export const updateVariantById = async (id, body, files) => {
     updatedData.sku = sku;
   }
 
-  if (price !== undefined) {
-    const parsedPrice = Number(price);
+  if (costPrice !== undefined) {
+    const parsedCostPrice = Number(costPrice);
 
-    if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
+    if (Number.isNaN(parsedCostPrice) || parsedCostPrice < 0) {
       throw new AppError("Invalid price value", 400);
     }
 
-    updatedData.price = parsedPrice;
+    updatedData.costPrice = parsedCostPrice;
+  }
+
+  if (sellingPrice !== undefined) {
+    const parsedSellingPrice = Number(sellingPrice);
+
+    if (Number.isNaN(parsedSellingPrice) || parsedSellingPrice < 0) {
+      throw new AppError("Invalid price value", 400);
+    }
+
+    updatedData.sellingPrice = parsedSellingPrice;
   }
 
   let uploadedImages = [];

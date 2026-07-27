@@ -9,7 +9,7 @@ const requestFilesSchemas = {
 
   product: {
     create: {
-      images: {
+      productImages: {
         required: true,
         min: 1,
         max: 10,
@@ -17,7 +17,7 @@ const requestFilesSchemas = {
     },
 
     update: {
-      images: {
+      productImages: {
         min: 1,
         max: 10,
       },

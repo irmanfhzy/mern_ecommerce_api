@@ -20,6 +20,14 @@ export const updateProfileController = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data });
 });
 
+export const updateProfilePictureController = asyncHandler(async (req, res) => {
+  const data = await userService.updateProfilePicture(
+    req.user.userId,
+    req.file,
+  );
+  res.status(200).json({ success: true, data });
+});
+
 export const updateEmailController = asyncHandler(async (req, res) => {
   const data = await userService.updateEmail(req.user.userId, req.body.email);
   res.status(200).json({ success: true, data });

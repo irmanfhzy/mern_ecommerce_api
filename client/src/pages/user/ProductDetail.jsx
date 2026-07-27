@@ -12,11 +12,11 @@ import VariantSelector from "../../components/user/VariantSelector";
 import Badge from "../../components/user/Badge";
 import Loading from "../../components/common/Loading";
 
-import formatPrice from "../../utils/formatPrice";
+import formatPrice from "../../utils/priceFormatter";
 import { normalizeImages } from "../../utils/imageHelpers";
 
 export default function ProductDetail() {
-  const { id } = useParams();
+  const { productId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -29,7 +29,7 @@ export default function ProductDetail() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const res = await getProductById(id);
+      const res = await getProductById(productId);
       const data = res.data.items;
 
       setProduct(data);
@@ -38,7 +38,7 @@ export default function ProductDetail() {
     };
 
     fetchData();
-  }, [id]);
+  }, [productId]);
 
   const galleryImages = useMemo(() => {
     const imgs = selectedVariant?.images?.length

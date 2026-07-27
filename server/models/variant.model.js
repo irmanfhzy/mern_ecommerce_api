@@ -52,7 +52,12 @@ const variantSchema = new mongoose.Schema(
       min: 0,
       default: 0,
     },
-    price: {
+    costPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    sellingPrice: {
       type: Number,
       required: true,
       min: 0,

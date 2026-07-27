@@ -10,6 +10,7 @@ export default function CartItem({
   onDecrease,
   onDelete,
   onChangeVariant,
+  changeButtonRef,
 }) {
   const product = item.variantId.productId;
   const variant = item.variantId;
@@ -43,7 +44,12 @@ export default function CartItem({
 
           <span className="font-medium text-gray-700">{variant.name}</span>
 
-          <Button onClick={onChangeVariant} variant="outline" size="sm">
+          <Button
+            ref={changeButtonRef}
+            onClick={onChangeVariant}
+            variant="outline"
+            size="sm"
+          >
             Change
           </Button>
         </div>

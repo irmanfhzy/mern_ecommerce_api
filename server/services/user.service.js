@@ -32,8 +32,8 @@ export const getProfile = async (userId) => {
   return user;
 };
 
-export const updateProfile = async (userId, body, file) => {
-  const { name, gender, dateOfBirth, image } = body;
+export const updateProfile = async (userId, body) => {
+  const { name, gender, dateOfBirth } = body;
 
   const updatedData = {};
 
@@ -59,7 +59,22 @@ export const updateProfile = async (userId, body, file) => {
 
   checker.checkDocument(oldProfile, "User not found");
 
-  const oldImagePublicId = oldProfile.image?.publicId;
+  const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
+    runValidators: true,
+    returnDocument: "after",
+  });
+
+  return updatedUser;
+};
+
+export const updateProfilePicture = async (userId, file) => {
+  const oldProfilePicture = await User.findById(userId)
+    .select("image.publicId")
+    .lean();
+
+  checker.checkDocument(oldProfilePicture, "User not found");
+
+  const oldImagePublicId = oldProfilePicture.image?.publicId;
 
   let uploadedImage = null;
 
@@ -72,22 +87,26 @@ export const updateProfile = async (userId, body, file) => {
 
       uploadedImage = await uploadImage(processedImage, `user/${userId}`);
 
-      updatedData.image = {
-        url: uploadedImage.secure_url,
-        publicId: uploadedImage.public_id,
-      };
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        {
+          image: {
+            url: uploadedImage.secure_url,
+            publicId: uploadedImage.public_id,
+          },
+        },
+        {
+          runValidators: true,
+          returnDocument: "after",
+        },
+      );
+
+      if (file && oldImagePublicId) {
+        await cloudinary.uploader.destroy(oldImagePublicId);
+      }
+
+      return updatedUser;
     }
-
-    const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
-      runValidators: true,
-      returnDocument: "after",
-    });
-
-    if (file && oldImagePublicId) {
-      await cloudinary.uploader.destroy(oldImagePublicId);
-    }
-
-    return updatedUser.toObject();
   } catch (error) {
     if (uploadedImage?.public_id) {
       await cloudinary.uploader.destroy(uploadedImage.public_id);
@@ -124,7 +143,7 @@ export const updateEmail = async (userId, email) => {
 
   checker.checkDocument(updatedUser, "User not found");
 
-  return updatedUser.toObject();
+  return updatedUser;
 };
 
 export const updateUsername = async (userId, username) => {
@@ -152,7 +171,7 @@ export const updateUsername = async (userId, username) => {
 
   checker.checkDocument(updatedUser, "User not found");
 
-  return updatedUser.toObject();
+  return updatedUser;
 };
 
 export const updatePhone = async (userId, phone) => {
@@ -182,7 +201,7 @@ export const updatePhone = async (userId, phone) => {
 
   checker.checkDocument(updatedUser, "User not found");
 
-  return updatedUser.toObject();
+  return updatedUser;
 };
 
 export const addAddress = async (userId, body) => {
@@ -507,8 +526,8 @@ export const changePassword = async (userId, body) => {
   checker.checkPassword({
     type: "change",
     currentPassword,
-    password: newPassword,
-    confirmPassword: confirmNewPassword,
+    newPassword: newPassword,
+    confirmNewPassword: confirmNewPassword,
   });
 
   const user = await User.findById(userId).select("+password");
@@ -539,4 +558,12 @@ export const deleteUserById = async (userId) => {
   checker.checkDocument(deletedUser, "User not found");
 
   return deletedUser;
+};
+
+export const getUserStatistics = async () => {
+  const total = await User.countDocuments();
+
+  return {
+    total,
+  };
 };

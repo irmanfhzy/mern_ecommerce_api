@@ -1,11 +1,8 @@
-import getImageUrl from "../../utils/getImageUrl";
-import formatPrice from "../../utils/formatPrice";
-import { LiaCartPlusSolid } from "react-icons/lia";
-import noImage from "../../assets/no-image.png";
+import { getImageUrl } from "../../utils/imageHelpers";
+import formatPrice from "../../utils/priceFormatter";
 
 export default function ProductCard({ product }) {
-  const imageUrl = getImageUrl(product.image?.url, {
-    fallback: noImage,
+  const imageUrl = getImageUrl(product.images?.[0]?.url, {
     width: 300,
     height: 300,
     crop: "fill",

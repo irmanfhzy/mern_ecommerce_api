@@ -1,14 +1,22 @@
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import Sidebar from "../components/common/Sidebar";
-import AdminMenu from "../components/admin/AdminMenu";
+import AdminNavbar from "../components/admin/AdminNavbar";
+import AdminHeader from "../components/admin/AdminHeader";
 
 export default function AdminLayout() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   return (
-    <div className="flex gap-5 min-h-screen">
-      <Sidebar>
-        <AdminMenu />
-      </Sidebar>
-      <Outlet />
+    <div className="flex h-screen flex-col">
+      <AdminHeader onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)} />
+
+      <main className="flex flex-1 gap-5 overflow-hidden p-4">
+        <AdminNavbar open={isSidebarOpen} />
+
+        <div className="flex-1 overflow-y-auto">
+          <Outlet />
+        </div>
+      </main>
     </div>
   );
 }

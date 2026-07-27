@@ -5,12 +5,8 @@ import { CartContext } from "../../contexts/CartContext";
 import { ConfirmationDialogContext } from "../../contexts/ConfirmationDialogContext";
 
 import CartContainer from "../../components/user/CartContainer";
-import CartItem from "../../components/user/CartItem";
-import VariantSelector from "../../components/user/VariantSelector";
-import Popover from "../../components/common/Popover";
+import CartRow from "../../components/user/CartRow";
 import Button from "../../components/common/Button";
-
-import { getVariantsByProductId } from "../../services/variant.service";
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -20,9 +16,6 @@ export default function Cart() {
   const { cart, changeVariant, updateCartItemQuantity, removeCartItem } =
     useContext(CartContext);
 
-  const [openVariantId, setOpenVariantId] = useState(null);
-  const [variants, setVariants] = useState([]);
-  const [pendingVariant, setPendingVariant] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
 
   const toggleItem = (variantId) => {
@@ -59,68 +52,53 @@ export default function Cart() {
   }, [selectedCartItems]);
 
   const handleIncrease = async (variantId, quantity) => {
-    await updateCartItemQuantity(variantId, quantity + 1);
-  };
-
-  const handleDecrease = async (variantId, quantity) => {
-    if (quantity > 1) {
-      await updateCartItemQuantity(variantId, quantity - 1);
-      return;
-    }
-
-    openDialog({
-      title: "Remove Item",
-      message: "Are you sure you want to remove this item from your cart?",
-      confirmVariant: "danger",
-      cancelVariant: "ghost",
-      onConfirm: () => handleDelete(variantId),
-    });
-  };
-
-  const handleDelete = async (variantId) => {
-    await removeCartItem(variantId);
-
-    setSelectedItems((prev) => prev.filter((id) => id !== variantId));
-
-    closeDialog();
-  };
-
-  const closeVariantPopover = () => {
-    setOpenVariantId(null);
-    setPendingVariant(null);
-    setVariants([]);
-  };
-
-  const handleOpenVariant = async (
-    cartVariantId,
-    productId,
-    currentVariant,
-  ) => {
     try {
-      setOpenVariantId(cartVariantId);
-      setPendingVariant(currentVariant);
-
-      const res = await getVariantsByProductId(productId);
-
-      setVariants(res.data.items);
+      await updateCartItemQuantity(variantId, quantity + 1);
     } catch (error) {
       alert(error.response?.data?.message || error.message);
     }
   };
 
-  const handleConfirmVariant = async (oldVariantId) => {
+  const handleDecrease = async (variantId, quantity) => {
     try {
-      if (!pendingVariant) return;
+      if (quantity > 1) {
+        await updateCartItemQuantity(variantId, quantity - 1);
+        return;
+      }
 
-      await changeVariant(oldVariantId, pendingVariant._id);
+      openDialog({
+        title: "Remove Item",
+        message: "Are you sure you want to remove this item from your cart?",
+        confirmVariant: "danger",
+        cancelVariant: "ghost",
+        onConfirm: () => handleDelete(variantId),
+      });
+    } catch (error) {
+      alert(error.response?.data?.message || error.message);
+    }
+  };
+
+  const handleDelete = async (variantId) => {
+    try {
+      await removeCartItem(variantId);
+
+      setSelectedItems((prev) => prev.filter((id) => id !== variantId));
+    } catch (error) {
+      alert(error.response?.data?.message || error.message);
+    } finally {
+      closeDialog();
+    }
+  };
+
+  const handleConfirmVariant = async (oldVariantId, newVariantId) => {
+    try {
+      await changeVariant(oldVariantId, newVariantId);
 
       if (selectedItems.includes(oldVariantId)) {
         setSelectedItems((prev) =>
-          prev.map((id) => (id === oldVariantId ? pendingVariant._id : id)),
+          prev.map((id) => (id === oldVariantId ? newVariantId : id)),
         );
       }
-
-      closeVariantPopover();
     } catch (error) {
       alert(error.response?.data?.message || error.message);
     }
@@ -128,6 +106,7 @@ export default function Cart() {
 
   const handleCheckout = () => {
     localStorage.setItem("checkoutItems", JSON.stringify(selectedItems));
+
     navigate("/checkout");
   };
 
@@ -137,67 +116,31 @@ export default function Cart() {
         {cart.items.length === 0 ? (
           <p className="py-10 text-center text-gray-500">Your cart is empty</p>
         ) : (
-          cart.items.map((item) => {
-            const variantId = item.variantId._id;
-            const quantity = item.quantity;
-            const productId = item.variantId.productId._id;
-
-            return (
-              <div key={variantId} className="relative">
-                <CartItem
-                  item={item}
-                  checked={selectedItems.includes(variantId)}
-                  onToggle={() => toggleItem(variantId)}
-                  onChangeVariant={() =>
-                    handleOpenVariant(variantId, productId, item.variantId)
-                  }
-                  onIncrease={() => handleIncrease(variantId, quantity)}
-                  onDecrease={() => handleDecrease(variantId, quantity)}
-                  onDelete={() =>
-                    openDialog({
-                      title: "Remove Item",
-                      message:
-                        "Are you sure you want to remove this item from your cart?",
-                      confirmVariant: "danger",
-                      onConfirm: () => handleDelete(variantId),
-                    })
-                  }
-                />
-
-                <Popover
-                  isOpen={openVariantId === variantId}
-                  onClose={closeVariantPopover}
-                >
-                  <div className="flex flex-col gap-4">
-                    <h3 className="font-semibold">Select Variant</h3>
-
-                    <VariantSelector
-                      variants={variants}
-                      selectedVariant={pendingVariant}
-                      onSelect={setPendingVariant}
-                    />
-
-                    <div className="flex justify-end gap-2">
-                      <Button onClick={closeVariantPopover} variant="ghost">
-                        Cancel
-                      </Button>
-
-                      <Button
-                        onClick={() => handleConfirmVariant(variantId)}
-                        disabled={
-                          !pendingVariant ||
-                          pendingVariant._id === item.variantId._id
-                        }
-                        variant="primary"
-                      >
-                        Confirm
-                      </Button>
-                    </div>
-                  </div>
-                </Popover>
-              </div>
-            );
-          })
+          cart.items.map((item) => (
+            <CartRow
+              key={item.variantId._id}
+              item={item}
+              checked={selectedItems.includes(item.variantId._id)}
+              onToggle={() => toggleItem(item.variantId._id)}
+              onIncrease={() =>
+                handleIncrease(item.variantId._id, item.quantity)
+              }
+              onDecrease={() =>
+                handleDecrease(item.variantId._id, item.quantity)
+              }
+              onDelete={() =>
+                openDialog({
+                  title: "Remove Item",
+                  message:
+                    "Are you sure you want to remove this item from your cart?",
+                  confirmVariant: "danger",
+                  cancelVariant: "ghost",
+                  onConfirm: () => handleDelete(item.variantId._id),
+                })
+              }
+              onConfirmVariant={handleConfirmVariant}
+            />
+          ))
         )}
       </CartContainer>
 

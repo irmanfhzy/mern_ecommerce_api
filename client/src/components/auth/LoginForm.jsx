@@ -2,6 +2,8 @@ import { useState, useContext } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext";
 import Button from "../common/Button";
+import { ROLE } from "@ecommerce/shared/constants";
+import PATHS from "../../constants/paths";
 
 export default function LoginForm() {
   const [formData, setFormData] = useState({
@@ -27,9 +29,21 @@ export default function LoginForm() {
 
     try {
       setLoading(true);
-      await login(formData);
+      const loggedInUser = await login(formData);
+      console.log(loggedInUser);
+      console.log(loggedInUser?.role);
+      console.log(ROLE.ADMIN);
       alert("Login successful");
-      navigate(location.state?.from?.pathname || "/", { replace: true });
+
+      if (loggedInUser?.role === ROLE.ADMIN) {
+        navigate(location.state?.from?.pathname || PATHS.ADMIN.DASHBOARD, {
+          replace: true,
+        });
+      } else {
+        navigate(location.state?.from?.pathname || PATHS.PUBLIC.HOME, {
+          replace: true,
+        });
+      }
     } catch (error) {
       alert(error.response?.data?.message || "Login failed");
     } finally {
@@ -70,6 +84,7 @@ export default function LoginForm() {
       </div>
 
       <Button
+        variant="primary"
         type="submit"
         loading={loading}
         disabled={!formData.identifier || !formData.password}

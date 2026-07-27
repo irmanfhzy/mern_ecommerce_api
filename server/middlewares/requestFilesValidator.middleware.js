@@ -14,7 +14,10 @@ const validateRequestFiles = (schema = {}) => {
       if (req.file && req.file.fieldname === field) {
         files = [req.file];
       } else if (Array.isArray(req.files)) {
-        files = req.files.filter((file) => file.fieldname === field);
+        files = req.files.filter(
+          (file) =>
+            file.fieldname === field || file.fieldname.startsWith(`${field}`),
+        );
       } else if (req.files?.[field]) {
         files = req.files[field];
       }

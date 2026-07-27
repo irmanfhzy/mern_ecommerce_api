@@ -2,8 +2,13 @@ import * as productService from "../services/product.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 export const addProductController = asyncHandler(async (req, res) => {
-  const data = await productService.addProduct(req.body, req.file);
-  res.status(201).json({ success: true, message: "Product Added", data });
+  const data = await productService.addProduct(req.body, req.files);
+
+  res.status(201).json({
+    success: true,
+    message: "Product Added",
+    data,
+  });
 });
 
 export const getAdminProductsController = asyncHandler(async (req, res) => {

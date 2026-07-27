@@ -16,7 +16,7 @@ export const loginController = asyncHandler(async (req, res) => {
 
 export const refreshAccessTokenController = asyncHandler(async (req, res) => {
   const data = await authService.refreshAccessToken(req.body);
-  res.status(200).json({ success: true, data });
+  res.status(200).json({ success: true, ...data });
 });
 
 export const getMeController = asyncHandler(async (req, res) => {

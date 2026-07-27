@@ -93,7 +93,7 @@ export default function RegisterForm() {
         />
       </div>
 
-      <Button type="submit" loading={loading}>
+      <Button variant="primary" type="submit" loading={loading}>
         Register
       </Button>
 

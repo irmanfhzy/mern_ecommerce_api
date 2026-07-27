@@ -1,17 +1,30 @@
 import mongoose from "mongoose";
+
 import Order from "../models/order.model.js";
 import Variant from "../models/variant.model.js";
+
 import { createInventoryHistory } from "./inventoryHistory.service.js";
+
+import generateOrderNumber from "../utils/orderNumberGenerator.js";
 import AppError from "../utils/AppError.js";
+import * as checker from "../utils/errorChecker.js";
+
 import {
   ORDER_STATUS,
+  PAYMENT_STATUS,
+  PAYMENT_METHOD,
   INVENTORY_TYPE,
   INVENTORY_REASON,
 } from "@ecommerce/shared/constants/index.js";
 
-export const createOrder = async ({ userId, items, shippingAddress }) => {
+export const createOrder = async (userId, body) => {
+  const { items, totalPrice, shippingAddress, paymentMethod } = body;
   if (!items || items.length === 0) {
     throw new AppError("Items cannot be empty", 400);
+  }
+
+  if (!Object.values(PAYMENT_METHOD).includes(paymentMethod)) {
+    throw new AppError("Invalid payment method", 400);
   }
 
   const session = await mongoose.startSession();
@@ -19,7 +32,9 @@ export const createOrder = async ({ userId, items, shippingAddress }) => {
   session.startTransaction();
 
   try {
-    let totalPrice = 0;
+    const { orderId, orderNumber } = generateOrderNumber();
+
+    let calculatedTotalPrice = 0;
 
     const orderItems = [];
 
@@ -27,41 +42,49 @@ export const createOrder = async ({ userId, items, shippingAddress }) => {
       const variant = await Variant.findOneAndUpdate(
         {
           _id: item.variantId,
-          stock: {
-            $gte: item.quantity,
-          },
+          stock: { $gte: item.quantity },
         },
         {
-          $inc: {
-            stock: -item.quantity,
-          },
+          $inc: { stock: -item.quantity },
         },
         {
-          new: true,
+          returnDocument: "after",
           session,
         },
+      ).populate("productId");
+
+      checker.checkDocument(
+        variant,
+        "Variant not found or insufficient stock",
+        400,
       );
 
-      if (!variant) {
-        throw new AppError("Variant not found or insufficient stock", 400);
-      }
-
-      totalPrice += variant.price * item.quantity;
+      calculatedTotalPrice += variant.price * item.quantity;
 
       orderItems.push({
         variantId: variant._id,
-        name: variant.name,
+        name: variant.productId.name,
         attributes: variant.attributes,
         price: variant.price,
         quantity: item.quantity,
       });
     }
 
+    if (totalPrice !== calculatedTotalPrice) {
+      throw new AppError(
+        "Order total has changed. Please review your cart.",
+        400,
+      );
+    }
+
     const order = new Order({
+      _id: orderId,
+      orderNumber,
       userId,
       items: orderItems,
-      totalPrice,
-      payment,
+      totalPrice: calculatedTotalPrice,
+      paymentMethod,
+      paymentStatus: PAYMENT_STATUS.PENDING,
       status: ORDER_STATUS.PENDING,
       shippingAddress,
     });
@@ -95,29 +118,36 @@ export const getOrderById = async (orderId, userId) => {
   const order = await Order.findOne({
     _id: orderId,
     userId,
-  }).lean();
+  })
+    .populate({
+      path: "items.variantId",
+      populate: {
+        path: "productId",
+      },
+    })
+    .lean();
 
-  if (!order) {
-    throw new AppError("Order not found", 404);
-  }
+  checker.checkDocument(order, "Order not found", 404);
 
   return order;
 };
 
 export const getUserOrders = async (userId) => {
-  return await Order.find({
-    userId,
-  })
-    .sort({
-      createdAt: -1,
+  const orders = await Order.find({ userId })
+    .populate({
+      path: "items.variantId",
+      populate: {
+        path: "productId",
+      },
     })
+    .sort({ createdAt: -1 })
     .lean();
+
+  return orders;
 };
 
 export const updateOrderStatus = async (orderId, status) => {
-  const allowedStatus = Object.values(ORDER_STATUS);
-
-  if (!allowedStatus.includes(status)) {
+  if (!Object.values(ORDER_STATUS).includes(status)) {
     throw new AppError("Invalid order status", 400);
   }
 
@@ -127,7 +157,66 @@ export const updateOrderStatus = async (orderId, status) => {
     throw new AppError("Order not found", 404);
   }
 
+  const allowedTransitions = {
+    [ORDER_STATUS.PENDING]: [ORDER_STATUS.PROCESSING, ORDER_STATUS.CANCELLED],
+    [ORDER_STATUS.PROCESSING]: [ORDER_STATUS.SHIPPED],
+    [ORDER_STATUS.SHIPPED]: [ORDER_STATUS.DELIVERED],
+    [ORDER_STATUS.DELIVERED]: [ORDER_STATUS.COMPLETED],
+    [ORDER_STATUS.COMPLETED]: [],
+    [ORDER_STATUS.CANCELLED]: [],
+  };
+
+  if (!allowedTransitions[order.status].includes(status)) {
+    throw new AppError("Invalid order status transition", 400);
+  }
+
   order.status = status;
+
+  switch (status) {
+    case ORDER_STATUS.COMPLETED:
+      order.completedAt = new Date();
+      break;
+
+    case ORDER_STATUS.CANCELLED:
+      order.cancelledAt = new Date();
+      break;
+  }
+
+  await order.save();
+
+  return order;
+};
+
+export const updatePaymentStatus = async (orderId, paymentStatus) => {
+  if (!Object.values(PAYMENT_STATUS).includes(paymentStatus)) {
+    throw new AppError("Invalid payment status", 400);
+  }
+
+  const order = await Order.findById(orderId);
+
+  if (!order) {
+    throw new AppError("Order not found", 404);
+  }
+
+  if (order.paymentStatus === PAYMENT_STATUS.REFUNDED) {
+    throw new AppError("Refunded payment cannot be updated", 400);
+  }
+
+  order.paymentStatus = paymentStatus;
+
+  switch (paymentStatus) {
+    case PAYMENT_STATUS.PAID:
+      order.paidAt = new Date();
+      break;
+
+    case PAYMENT_STATUS.FAILED:
+      order.paidAt = null;
+      break;
+
+    case PAYMENT_STATUS.REFUNDED:
+      order.paidAt = null;
+      break;
+  }
 
   await order.save();
 
@@ -147,10 +236,6 @@ export const cancelOrder = async (orderId, userId) => {
 
     if (!order) {
       throw new AppError("Order not found", 404);
-    }
-
-    if (order.status === ORDER_STATUS.CANCELLED) {
-      throw new AppError("Order already cancelled", 400);
     }
 
     if (order.status !== ORDER_STATUS.PENDING) {
@@ -183,6 +268,7 @@ export const cancelOrder = async (orderId, userId) => {
     }
 
     order.status = ORDER_STATUS.CANCELLED;
+    order.cancelledAt = new Date();
 
     await order.save({ session });
 
@@ -196,4 +282,36 @@ export const cancelOrder = async (orderId, userId) => {
   } finally {
     await session.endSession();
   }
+};
+
+export const getOrderStatistics = async () => {
+  const [total, pending, revenue] = await Promise.all([
+    Order.countDocuments(),
+
+    Order.countDocuments({
+      status: ORDER_STATUS.PENDING,
+    }),
+
+    Order.aggregate([
+      {
+        $match: {
+          status: ORDER_STATUS.COMPLETED,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: {
+            $sum: "$totalPrice",
+          },
+        },
+      },
+    ]),
+  ]);
+
+  return {
+    total,
+    pending,
+    revenue: revenue[0]?.totalRevenue ?? 0,
+  };
 };

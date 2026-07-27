@@ -7,8 +7,8 @@ export default function getPriceRange(variants = []) {
   let max = -Infinity;
 
   for (const variant of variants) {
-    if (variant.price < min) min = variant.price;
-    if (variant.price > max) max = variant.price;
+    if (variant.sellingPrice < min) min = variant.sellingPrice;
+    if (variant.sellingPrice > max) max = variant.sellingPrice;
   }
 
   return { min, max };

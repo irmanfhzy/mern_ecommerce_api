@@ -19,9 +19,8 @@ const router = express.Router();
 router.use(authenticate);
 
 router.post("/", createOrderController);
-
 router.get("/my-orders", getUserOrdersController);
-
+router.get("/:id", validateObjectId("params", "id"), getOrderByIdController);
 router.patch(
   "/:id/cancel",
   validateObjectId("params", "id"),
@@ -30,11 +29,9 @@ router.patch(
 
 router.patch(
   "/:id/status",
-  validateObjectId("params", "id"),
   authorize(ROLE.ADMIN),
+  validateObjectId("params", "id"),
   updateOrderStatusController,
 );
-
-router.get("/:id", validateObjectId("params", "id"), getOrderByIdController);
 
 export default router;

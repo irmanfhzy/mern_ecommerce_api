@@ -1,5 +1,5 @@
 const baseStyle =
-  "inline-flex items-center justify-center font-medium rounded-lg transition focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+  "inline-flex items-center justify-center font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
 
 const variants = {
   primary: "bg-blue-600 text-white hover:bg-blue-700",
@@ -8,6 +8,7 @@ const variants = {
   danger: "bg-red-600 text-white hover:bg-red-700",
   outline: "border border-gray-700 text-gray-700 hover:bg-gray-200",
   ghost: "text-gray-700 hover:bg-gray-100",
+  transparent: "p-0 bg-transparent hover:bg-transparent",
 };
 
 const sizes = {
@@ -17,8 +18,10 @@ const sizes = {
 };
 
 export default function Button({
+  type = "button",
   children,
-  variant = "primary",
+  ref,
+  variant = "",
   size = "md",
   loading = false,
   className = "",
@@ -27,6 +30,8 @@ export default function Button({
 }) {
   return (
     <button
+      type={type}
+      ref={ref}
       className={`${baseStyle} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={disabled || loading}
       {...props}

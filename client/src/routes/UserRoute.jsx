@@ -7,6 +7,17 @@ import ProductDetail from "../pages/user/ProductDetail";
 import Checkout from "../pages/user/Checkout";
 import AddAddress from "../pages/user/AddAddress";
 import Profile from "../pages/user/Profile";
+import OrderDetail from "../pages/user/OrderDetail";
+import MyOrders from "../pages/user/MyOrders";
+import EditProfile from "../pages/user/EditProfile";
+import Addresses from "../pages/user/Addresses";
+import EditAddress from "../pages/user/EditAddress";
+import Account from "../pages/user/Account";
+import EditEmail from "../pages/user/EditEmail";
+import EditUsername from "../pages/user/EditUsername";
+import EditPhone from "../pages/user/EditPhone";
+import ChangePassword from "../pages/user/ChangePassword";
+import ChangeProfilePicture from "../pages/user/ChangeProfilePicture";
 
 const userRoute = [
   {
@@ -18,7 +29,7 @@ const userRoute = [
         element: <Home />,
       },
       {
-        path: "product/:id/:slug",
+        path: "product/:productId/:slug",
         element: <ProductDetail />,
       },
 
@@ -38,8 +49,52 @@ const userRoute = [
             element: <Profile />,
           },
           {
-            path: "addresses/new",
+            path: "profile/picture/change",
+            element: <ChangeProfilePicture />,
+          },
+          {
+            path: "profile/edit",
+            element: <EditProfile />,
+          },
+          {
+            path: "profile/account",
+            element: <Account />,
+          },
+          {
+            path: "profile/account/email/edit",
+            element: <EditEmail />,
+          },
+          {
+            path: "profile/account/username/edit",
+            element: <EditUsername />,
+          },
+          {
+            path: "profile/account/phone/edit",
+            element: <EditPhone />,
+          },
+          {
+            path: "profile/account/password/change",
+            element: <ChangePassword />,
+          },
+          {
+            path: "profile/addresses",
+            element: <Addresses />,
+          },
+          {
+            path: "profile/addresses/new",
             element: <AddAddress />,
+          },
+          {
+            path: "profile/addresses/:addressId/edit",
+            element: <EditAddress />,
+          },
+          {
+            path: "my-orders",
+            element: <MyOrders />,
+          },
+          {
+            path: "my-orders/:id",
+            element: <OrderDetail />,
           },
         ],
       },

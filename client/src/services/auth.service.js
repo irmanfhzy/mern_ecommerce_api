@@ -8,10 +8,6 @@ export const login = async (data) => {
   return await api.post("/auth/login", data);
 };
 
-export const refreshToken = async (refreshToken) => {
-  return await api.post("/auth/refresh-token", { refreshToken });
-};
-
 export const getMe = async () => {
   return await api.get("/auth/me");
 };

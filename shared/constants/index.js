@@ -1,13 +1,23 @@
 export const ORDER_STATUS = {
   PENDING: "pending",
-  PAID: "paid",
+  PROCESSING: "processing",
+  SHIPPED: "shipped",
+  DELIVERED: "delivered",
+  COMPLETED: "completed",
   CANCELLED: "cancelled",
 };
 
-export const PAYMENT = {
+export const PAYMENT_STATUS = {
+  PENDING: "pending",
+  PAID: "paid",
+  FAILED: "failed",
+  REFUNDED: "refunded",
+};
+
+export const PAYMENT_METHOD = {
   COD: "cash_on_delivery",
   BANK_TRANSFER: "bank_transfer",
-  EWALLET: "e-wallet",
+  E_WALLET: "e_wallet",
 };
 
 export const INVENTORY_TYPE = {

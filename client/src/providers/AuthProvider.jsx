@@ -3,7 +3,6 @@ import { AuthContext } from "../contexts/AuthContext";
 import {
   register as registerApi,
   login as loginApi,
-  refreshToken as refreshTokenApi,
   getMe as getMeApi,
   logout as logoutApi,
 } from "../services/auth.service";
@@ -21,11 +20,7 @@ export default function AuthProvider({ children }) {
     localStorage.setItem("accessToken", res.data.accessToken);
     localStorage.setItem("refreshToken", res.data.refreshToken);
     setUser(res.data.data);
-  };
-
-  const refreshAccessToken = async (refreshToken) => {
-    const res = await refreshTokenApi(refreshToken);
-    localStorage.setItem("accessToken", res.data.accessToken);
+    return res.data.data;
   };
 
   const getMe = async () => {
@@ -43,13 +38,14 @@ export default function AuthProvider({ children }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem("accessToken");
 
         if (token && token !== "undefined") {
           await getMe();
         }
       } catch (error) {
-        console.log(error);
+        alert(error.response?.data?.message || error.message);
       } finally {
         setLoading(false);
       }
@@ -62,11 +58,12 @@ export default function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         loading,
         register,
         login,
-        refreshAccessToken,
         logout,
+        getMe,
       }}
     >
       {children}

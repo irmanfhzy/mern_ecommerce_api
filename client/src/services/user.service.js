@@ -10,20 +10,24 @@ export const getProfile = () => {
   return api.get("/users/profile");
 };
 
+export const updateProfilePicture = (formData) => {
+  return api.patch("/users/profile/picture/change", formData);
+};
+
 export const updateProfile = (data) => {
   return api.patch("/users/profile", data);
 };
 
 export const updateEmail = (data) => {
-  return api.patch("/users/account/email", data);
+  return api.patch("/users/profile/account/email", data);
 };
 
 export const updateUsername = (data) => {
-  return api.patch("/users/account/username", data);
+  return api.patch("/users/profile/account/username", data);
 };
 
 export const updatePhone = (data) => {
-  return api.patch("/users/account/phone", data);
+  return api.patch("/users/profile/account/phone", data);
 };
 
 export const addAddress = (data) => {

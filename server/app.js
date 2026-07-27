@@ -9,6 +9,7 @@ import cartRoutes from "./routes/cart.route.js";
 import orderRoutes from "./routes/order.route.js";
 import InventoryHistoryRoutes from "./routes/inventoryHistory.route.js";
 import appSettingRoutes from "./routes/appSetting.route.js";
+import adminRoutes from "./routes/admin.route.js";
 
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 
@@ -35,6 +36,7 @@ app.use("/api/carts", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/inventory-histories", InventoryHistoryRoutes);
 app.use("/api/app-setting", appSettingRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use(errorHandler);
 

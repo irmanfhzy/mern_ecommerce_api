@@ -1,27 +1,41 @@
 import { useEffect, useRef } from "react";
 
-export default function Popover({ isOpen, onClose, children, className = "" }) {
-  const ref = useRef(null);
+export default function Popover({
+  isOpen,
+  onClose,
+  triggerRef,
+  children,
+  className = "",
+}) {
+  const popoverRef = useRef(null);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        onClose?.();
+    if (!isOpen) return;
+
+    const handleMouseDown = (e) => {
+      const clickedPopover = popoverRef.current?.contains(e.target);
+
+      const clickedTrigger = triggerRef.current?.contains(e.target);
+
+      if (clickedPopover || clickedTrigger) {
+        return;
       }
+
+      onClose();
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleMouseDown);
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleMouseDown);
     };
-  }, [onClose]);
+  }, [isOpen, onClose, triggerRef]);
 
   if (!isOpen) return null;
 
   return (
     <div
-      ref={ref}
+      ref={popoverRef}
       className={`
         absolute
         top-full
@@ -35,10 +49,6 @@ export default function Popover({ isOpen, onClose, children, className = "" }) {
         shadow-xl
         p-4
         z-50
-        animate-in
-        fade-in
-        zoom-in-95
-        duration-200
         ${className}
       `}
     >

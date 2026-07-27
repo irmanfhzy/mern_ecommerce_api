@@ -62,7 +62,10 @@ export const login = async (body) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      username: user.username,
+      phone: user.phone,
       role: user.role,
+      image: user.image,
     },
   };
 };
@@ -76,13 +79,17 @@ export const refreshAccessToken = async (body) => {
     throw new AppError("Invalid refresh token", 401);
   }
 
-  const newAccessToken = generateAccessToken(user._id, user.role);
+  const accessToken = generateAccessToken(user._id, user.role);
 
-  return newAccessToken;
+  return {
+    accessToken,
+  };
 };
 
 export const getMe = async (userId) => {
-  const user = await User.findById(userId).select("_id name email role").lean();
+  const user = await User.findById(userId)
+    .select("_id name email username phone role image")
+    .lean();
   checker.checkDocument(user, "User not found", 404);
   return user;
 };

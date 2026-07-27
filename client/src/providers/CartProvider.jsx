@@ -17,6 +17,9 @@ export default function CartProvider({ children }) {
     items: [],
   });
 
+  const cartCount =
+    cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
+
   const fetchCart = async () => {
     const res = await getCartApi();
     setCart(res.data.data);
@@ -49,7 +52,6 @@ export default function CartProvider({ children }) {
 
   useEffect(() => {
     if (user) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchCart();
     } else {
       setCart({ items: [] });
@@ -60,6 +62,7 @@ export default function CartProvider({ children }) {
     <CartContext.Provider
       value={{
         cart,
+        cartCount,
         fetchCart,
         addToCart,
         changeVariant,

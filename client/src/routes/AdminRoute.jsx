@@ -3,15 +3,16 @@ import ProtectedAdminRoute from "./ProtectedAdminRoute";
 import AdminLayout from "../layouts/AdminLayout";
 
 import Dashboard from "../pages/admin/Dashboard";
-import Products from "../pages/admin/Products";
+import ProductsList from "../pages/admin/ProductsList";
+import AddProduct from "../pages/admin/AddProduct";
 
 const adminRoute = [
   {
-    path: "/admin",
-    element: <AdminLayout />,
+    element: <ProtectedAdminRoute />,
     children: [
       {
-        element: <ProtectedAdminRoute />,
+        path: "/admin",
+        element: <AdminLayout />,
         children: [
           {
             index: true,
@@ -19,7 +20,11 @@ const adminRoute = [
           },
           {
             path: "products",
-            element: <Products />,
+            element: <ProductsList />,
+          },
+          {
+            path: "products/create",
+            element: <AddProduct />,
           },
         ],
       },

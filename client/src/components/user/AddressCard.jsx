@@ -3,6 +3,7 @@ export default function AddressCard({
   selected = false,
   selectable = false,
   onSelect,
+  actions,
 }) {
   const handleClick = () => {
     if (!selectable) return;
@@ -13,7 +14,7 @@ export default function AddressCard({
     <div
       onClick={handleClick}
       className={`rounded-xl border p-4 transition
-        ${selected ? "border-blue-700 bg-blue-50" : "border-gray-200 bg-white"}
+        ${selected ? "border-blue-700 bg-blue-50" : "border-gray-500 bg-white"}
         ${
           selectable
             ? `cursor-pointer ${
@@ -35,11 +36,11 @@ export default function AddressCard({
 
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="font-semibold text-gray-900">
+          <h3 className="font-semibold text-black-900">
             {address.recipientName}
           </h3>
 
-          <p className="text-sm text-gray-500">{address.phone}</p>
+          <p className="text-sm text-black-500">{address.phone}</p>
         </div>
 
         {address.isDefault && (
@@ -50,21 +51,24 @@ export default function AddressCard({
       </div>
 
       {address.label && (
-        <p className="mt-2 text-sm font-medium text-gray-700">
+        <p className="mt-2 text-sm font-medium text-black-700">
           {address.label}
         </p>
       )}
 
-      <div className="mt-2 text-sm text-gray-600 leading-relaxed">
-        <p>{address.street}</p>
+      <div className="mt-2 text-sm text-black-600 leading-relaxed">
         <p>
-          {address.village}, {address.district}
-        </p>
-        <p>
+          {address.street}, {address.village}, {address.district},{" "}
           {address.city}, {address.province}
         </p>
         <p>{address.postalCode}</p>
       </div>
+
+      {actions && (
+        <div className="mt-4 flex justify-end gap-2 border-t pt-4">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

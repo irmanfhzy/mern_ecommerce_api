@@ -12,6 +12,8 @@ export default function ConfirmationDialogProvider({ children }) {
     confirmText: "Yes",
     cancelText: "No",
     onConfirm: null,
+    loading: false,
+    disabled: false,
   });
 
   const openDialog = ({
@@ -22,6 +24,8 @@ export default function ConfirmationDialogProvider({ children }) {
     confirmText = "Yes",
     cancelText = "No",
     onConfirm,
+    disabled = false,
+    loading = false,
   }) => {
     setDialog({
       isOpen: true,
@@ -32,6 +36,8 @@ export default function ConfirmationDialogProvider({ children }) {
       confirmText,
       cancelText,
       onConfirm,
+      disabled,
+      loading,
     });
   };
 
@@ -69,6 +75,8 @@ export default function ConfirmationDialogProvider({ children }) {
         cancelText={dialog.cancelText}
         onConfirm={dialog.onConfirm}
         onCancel={closeDialog}
+        disabled={dialog.disabled}
+        loading={dialog.loading}
       />
     </ConfirmationDialogContext.Provider>
   );

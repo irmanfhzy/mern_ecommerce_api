@@ -48,8 +48,19 @@ export default function useIndonesiaRegion(initialData = {}) {
     }
   };
 
+  const initializeRegion = async (address) => {
+    const [citiesRes, districtsRes, villagesRes] = await Promise.all([
+      getCities(address.provinceId),
+      getDistricts(address.cityId),
+      getVillages(address.districtId),
+    ]);
+
+    setCities(citiesRes.data);
+    setDistricts(districtsRes.data);
+    setVillages(villagesRes.data);
+  };
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProvinces();
   }, []);
 
@@ -187,6 +198,7 @@ export default function useIndonesiaRegion(initialData = {}) {
     setForm,
     resetForm,
 
+    initializeRegion,
     provinces,
     cities,
     districts,

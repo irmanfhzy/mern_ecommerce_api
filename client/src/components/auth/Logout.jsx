@@ -2,9 +2,9 @@ import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext";
 import { ConfirmationDialogContext } from "../../contexts/ConfirmationDialogContext";
-import Button from "../common/Button";
+import { LogOut } from "lucide-react";
 
-export default function Logout({ className = "" }) {
+export default function Logout({ className = "", onClick, icon }) {
   const { logout } = useContext(AuthContext);
   const { openDialog, updateDialog, closeDialog } = useContext(
     ConfirmationDialogContext,
@@ -13,6 +13,8 @@ export default function Logout({ className = "" }) {
   const navigate = useNavigate();
 
   const confirmLogout = () => {
+    onClick?.();
+
     openDialog({
       title: "Logout",
       message: "Are you sure you want to logout?",
@@ -36,13 +38,13 @@ export default function Logout({ className = "" }) {
   };
 
   return (
-    <Button
-      variant="ghost"
+    <button
       onClick={confirmLogout}
       disabled={loading}
-      className={className}
+      className={`flex items-center gap-2 cursor-pointer ${className}`}
     >
+      {icon && <LogOut className="w-5 h-5" />}
       {loading ? "Logging out..." : "Logout"}
-    </Button>
+    </button>
   );
 }

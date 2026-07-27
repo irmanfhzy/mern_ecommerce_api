@@ -23,15 +23,15 @@ export const checkEmail = (
 export const checkPassword = ({
   type,
   currentPassword,
-  password,
-  confirmPassword,
+  newPassword,
+  confirmNewPassword,
 }) => {
   type = type?.toLowerCase();
-  if (password.length < 8) {
+  if (newPassword.length < 8) {
     throw new AppError("Password must be at least 8 characters long", 400);
   }
 
-  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/.test(password)) {
+  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/.test(newPassword)) {
     throw new AppError(
       "Password must include uppercase, lowercase, and number",
       400,
@@ -40,12 +40,12 @@ export const checkPassword = ({
 
   if (
     (type === "register" || type === "change") &&
-    password !== confirmPassword
+    newPassword !== confirmNewPassword
   ) {
     throw new AppError("Password and password confirmation do not match", 400);
   }
 
-  if (type === "change" && currentPassword === password) {
+  if (type === "change" && currentPassword === newPassword) {
     throw new AppError(
       "New password must be different from current password",
       400,

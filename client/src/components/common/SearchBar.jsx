@@ -1,30 +1,37 @@
-import { useContext, useState } from "react";
-import { SearchContext } from "../../contexts/SearchContext";
-import { IoSearch } from "react-icons/io5";
+import { useState } from "react";
+import { Search } from "lucide-react";
 
-export default function SearchBar() {
-  const [input, setInput] = useState("");
-  const { setKeyword } = useContext(SearchContext);
+export default function SearchBar({
+  onSearch,
+  placeholder = "Search...",
+  defaultValue = "",
+  className = "",
+}) {
+  const [input, setInput] = useState(defaultValue);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setKeyword(input.trim());
+    onSearch?.(input.trim());
   };
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-center bg-white text-black w-full h-full rounded-2xl"
+      className={`flex h-10 w-full items-center rounded-lg border bg-white text-black ${className}`}
     >
       <input
         type="text"
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        placeholder="Search Products"
-        className="flex-1 px-4"
+        placeholder={placeholder}
+        className="flex-1 bg-transparent px-4 outline-none"
       />
-      <button type="submit" className="px-3">
-        <IoSearch className="w-6 h-6 hover:cursor-pointer" />
+
+      <button
+        type="submit"
+        className="flex h-full items-center justify-center px-3"
+      >
+        <Search className="h-5 w-5" />
       </button>
     </form>
   );

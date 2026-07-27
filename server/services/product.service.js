@@ -13,6 +13,8 @@ import processImage from "../utils/processingImage.js";
 import uploadImage from "../utils/uploadingImage.js";
 import getPriceRange from "../utils/getPriceRange.js";
 
+import { createVariants } from "./variant.service.js";
+
 const attachPriceRange = (products = [], variants = []) => {
   const variantMap = variants.reduce((acc, variant) => {
     const id = variant.productId.toString();
@@ -31,9 +33,15 @@ const attachPriceRange = (products = [], variants = []) => {
 
     const priceRange = getPriceRange(productVariants);
 
+    const totalStock = productVariants.reduce(
+      (total, variant) => total + variant.stock,
+      0,
+    );
+
     return {
       ...product,
       priceRange,
+      totalStock,
     };
   });
 };
@@ -41,57 +49,108 @@ const attachPriceRange = (products = [], variants = []) => {
 export const addProduct = async (body, files = []) => {
   const { name, brand, description } = body;
 
+  const productFiles = files.filter(
+    (file) => file.fieldname === "productImages",
+  );
+
+  const variants =
+    typeof body.variants === "string"
+      ? JSON.parse(body.variants)
+      : body.variants || [];
+
+  const variantFiles = {};
+
+  files.forEach((file) => {
+    if (!file.fieldname.startsWith("variantImages")) return;
+
+    const index = Number(file.fieldname.replace("variantImages", ""));
+
+    if (!variantFiles[index]) {
+      variantFiles[index] = [];
+    }
+
+    variantFiles[index].push(file);
+  });
+
   const productId = new mongoose.Types.ObjectId();
   const slug = generateSlug(name);
+
+  const session = await mongoose.startSession();
 
   const uploadedImages = [];
 
   try {
-    if (files.length) {
-      for (const file of files) {
-        const processedImage = await processImage(
-          file.buffer,
-          IMAGE_CONFIG.PRODUCT,
-        );
+    session.startTransaction();
 
-        const uploaded = await uploadImage(
-          processedImage,
-          `products/${productId}`,
-        );
+    const productImages = [];
 
-        uploadedImages.push({
-          url: uploaded.secure_url,
-          publicId: uploaded.public_id,
-        });
-      }
+    for (const file of productFiles) {
+      const processedImage = await processImage(
+        file.buffer,
+        IMAGE_CONFIG.PRODUCT,
+      );
+
+      const uploaded = await uploadImage(
+        processedImage,
+        `products/${productId}`,
+      );
+
+      uploadedImages.push(uploaded);
+
+      productImages.push({
+        url: uploaded.secure_url,
+        publicId: uploaded.public_id,
+      });
     }
 
-    const product = await Product.create({
-      _id: productId,
-      name,
-      slug,
-      brand,
-      description,
-      images: uploadedImages,
+    const [product] = await Product.create(
+      [
+        {
+          _id: productId,
+          name,
+          slug,
+          brand,
+          description,
+          images: productImages,
+        },
+      ],
+      { session },
+    );
+
+    await createVariants({
+      productId: product._id,
+      variants,
+      variantFiles,
+      uploadedImages,
+      session,
     });
+
+    await session.commitTransaction();
 
     return product;
   } catch (error) {
+    await session.abortTransaction();
+
     if (uploadedImages.length) {
       await Promise.allSettled(
         uploadedImages.map((image) =>
-          cloudinary.uploader.destroy(image.publicId),
+          cloudinary.uploader.destroy(image.public_id),
         ),
       );
     }
 
     throw error;
+  } finally {
+    await session.endSession();
   }
 };
 
 export const getAdminProducts = async (query = {}) => {
-  const page = Math.max(parseInt(query.page, 10) || 1, 1);
-  const limit = Math.min(parseInt(query.limit, 10) || 10, 50);
+  const page = Math.max(Number.parseInt(query.page, 10) || 1, 1);
+  const limit = Math.min(
+    Math.max(Number.parseInt(query.limit, 10) || 10, 1),
+    50,
+  );
 
   const skip = (page - 1) * limit;
 
@@ -101,13 +160,16 @@ export const getAdminProducts = async (query = {}) => {
     filter.brand = query.brand;
   }
 
-  const sort = {};
-
-  if (query.sort === "oldest") {
-    sort.createdAt = 1;
-  } else {
-    sort.createdAt = -1;
+  if (query.keyword) {
+    filter.name = {
+      $regex: query.keyword,
+      $options: "i",
+    };
   }
+
+  const sort = {
+    createdAt: query.sort === "oldest" ? 1 : -1,
+  };
 
   const products = await Product.find(filter)
     .sort(sort)
@@ -123,15 +185,18 @@ export const getAdminProducts = async (query = {}) => {
 
   const items = attachPriceRange(products, variants);
 
-  const total = await Product.countDocuments(filter);
+  const totalItems = await Product.countDocuments(filter);
+  const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
 
   return {
     items,
     pagination: {
       page,
       limit,
-      total,
-      totalPages: Math.ceil(total / limit),
+      totalItems,
+      totalPages,
+      hasPrevious: page > 1,
+      hasNext: page < totalPages,
     },
   };
 };
@@ -378,4 +443,18 @@ export const deleteProductById = async (id) => {
   } finally {
     await session.endSession();
   }
+};
+
+export const getProductStatistics = async () => {
+  const [total, active, inactive] = await Promise.all([
+    Product.countDocuments(),
+    Product.countDocuments({ isActive: true }),
+    Product.countDocuments({ isActive: false }),
+  ]);
+
+  return {
+    total,
+    active,
+    inactive,
+  };
 };
