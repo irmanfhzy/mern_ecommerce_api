@@ -2,6 +2,7 @@ import ProtectedUserRoute from "./ProtectedUserRoute";
 import UserLayout from "../layouts/UserLayout";
 
 import Home from "../pages/user/Home";
+import About from "../pages/user/About";
 import Cart from "../pages/user/Cart";
 import ProductDetail from "../pages/user/ProductDetail";
 import Checkout from "../pages/user/Checkout";
@@ -27,6 +28,10 @@ const userRoute = [
       {
         index: true,
         element: <Home />,
+      },
+      {
+        path: "about",
+        element: <About />,
       },
       {
         path: "product/:productId/:slug",
@@ -93,7 +98,7 @@ const userRoute = [
             element: <MyOrders />,
           },
           {
-            path: "my-orders/:id",
+            path: "my-orders/:orderId",
             element: <OrderDetail />,
           },
         ],

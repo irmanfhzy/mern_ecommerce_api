@@ -1,20 +1,19 @@
 import Table from "../common/Table";
-import ProductTableRow from "./ProductTableRow";
+import OrderTableRow from "./OrderTableRow";
 
 const COLUMNS = [
-  { key: "image", label: "Image" },
-  { key: "name", label: "Name" },
-  { key: "brand", label: "Brand" },
-  { key: "priceRange", label: "Price Range" },
-  { key: "TotalStock", label: "Total Stock" },
+  { key: "orderNumber", label: "Order Number" },
+  { key: "customer", label: "Customer" },
+  { key: "totalPrice", label: "Total Price" },
+  { key: "status", label: "Status" },
+  { key: "paymentStatus", label: "Payment" },
+  { key: "createdAt", label: "Order Date" },
   { key: "actions", label: "Actions" },
 ];
 
-export default function ProductTable({
-  products,
+export default function OrderTable({
+  orders,
   onView,
-  onEdit,
-  onDelete,
   loading,
   tableClassName = "",
   containerClassName = "",
@@ -39,17 +38,15 @@ export default function ProductTable({
         {loading ? (
           <tr className={rowClassName}>
             <td colSpan={COLUMNS.length} className={cellClassName}>
-              Loading products...
+              Loading orders...
             </td>
           </tr>
-        ) : products.length > 0 ? (
-          products.map((product) => (
-            <ProductTableRow
-              key={product._id}
-              product={product}
+        ) : orders.length > 0 ? (
+          orders.map((order) => (
+            <OrderTableRow
+              key={order._id}
+              order={order}
               onView={onView}
-              onEdit={onEdit}
-              onDelete={onDelete}
               rowClassName={rowClassName}
               cellClassName={cellClassName}
             />
@@ -57,7 +54,7 @@ export default function ProductTable({
         ) : (
           <tr className={rowClassName}>
             <td colSpan={COLUMNS.length} className={cellClassName}>
-              No products found.
+              No orders found.
             </td>
           </tr>
         )}

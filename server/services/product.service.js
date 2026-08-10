@@ -15,7 +15,7 @@ import getPriceRange from "../utils/getPriceRange.js";
 
 import { createVariants } from "./variant.service.js";
 
-const attachPriceRange = (products = [], variants = []) => {
+const attachPriceSummary = (products = [], variants = []) => {
   const variantMap = variants.reduce((acc, variant) => {
     const id = variant.productId.toString();
 
@@ -183,7 +183,7 @@ export const getAdminProducts = async (query = {}) => {
     productId: { $in: productIds },
   }).lean();
 
-  const items = attachPriceRange(products, variants);
+  const items = attachPriceSummary(products, variants);
 
   const totalItems = await Product.countDocuments(filter);
   const totalPages = Math.max(Math.ceil(totalItems / limit), 1);
@@ -231,7 +231,7 @@ export const getPublicProducts = async (query = {}) => {
     productId: { $in: productIds },
   }).lean();
 
-  const items = attachPriceRange(products, variants);
+  const items = attachPriceSummary(products, variants);
 
   const nextCursor =
     products.length === limit ? products[products.length - 1]._id : null;
@@ -287,7 +287,7 @@ export const searchProduct = async (keyword) => {
     },
   }).lean();
 
-  const items = attachPriceRange(products, variants);
+  const items = attachPriceSummary(products, variants);
 
   return {
     items,
@@ -299,6 +299,10 @@ export const searchProduct = async (keyword) => {
 
 export const updateProductById = async (id, body, files = []) => {
   const { name, brand, description, isActive, deletedImages } = body;
+
+  const productFiles = files.filter(
+    (file) => file.fieldname === "productImages",
+  );
 
   const product = await Product.findById(id);
 
@@ -352,8 +356,8 @@ export const updateProductById = async (id, body, files = []) => {
       );
     }
 
-    if (files.length) {
-      for (const file of files) {
+    if (productFiles.length) {
+      for (const file of productFiles) {
         const processedImage = await processImage(
           file.buffer,
           IMAGE_CONFIG.PRODUCT,
@@ -398,7 +402,9 @@ export const deleteProductById = async (id) => {
 
     checker.checkDocument(deletedProduct, "Product not found");
 
-    const oldImagePublicId = deletedProduct?.image?.publicId;
+    const productImagePublicIds = deletedProduct.images.map(
+      (image) => image.publicId,
+    );
 
     const productVariants = await Variant.find({
       productId: id,
@@ -418,20 +424,35 @@ export const deleteProductById = async (id) => {
 
     await session.commitTransaction();
 
-    const publicIds = [
-      oldImagePublicId,
-      ...productVariants.flatMap((variant) =>
-        variant.images.map((image) => image.publicId),
-      ),
-    ].filter(Boolean);
+    const variantImagePublicIds = productVariants.flatMap((variant) =>
+      variant.images.map((image) => image.publicId),
+    );
 
-    const uniquePublicIds = [...new Set(publicIds)];
-
-    if (uniquePublicIds.length) {
+    if (productImagePublicIds.length) {
       await Promise.allSettled(
-        uniquePublicIds.map((publicId) =>
-          cloudinary.uploader.destroy(publicId),
-        ),
+        productImagePublicIds.map(async (publicId) => {
+          const used = await Order.exists({
+            "items.productImages.publicId": publicId,
+          });
+
+          if (!used) {
+            await cloudinary.uploader.destroy(publicId);
+          }
+        }),
+      );
+    }
+
+    if (variantImagePublicIds.length) {
+      await Promise.allSettled(
+        variantImagePublicIds.map(async (publicId) => {
+          const used = await Order.exists({
+            "items.variantImages.publicId": publicId,
+          });
+
+          if (!used) {
+            await cloudinary.uploader.destroy(publicId);
+          }
+        }),
       );
     }
 

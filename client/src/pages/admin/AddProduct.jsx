@@ -86,10 +86,16 @@ export default function AddProduct() {
     setForm((prev) => {
       const variants = [...prev.variants];
 
-      variants[variantIndex].attributes.push({
-        key: "",
-        value: "",
-      });
+      variants[variantIndex] = {
+        ...variants[variantIndex],
+        attributes: [
+          ...variants[variantIndex].attributes,
+          {
+            key: "",
+            value: "",
+          },
+        ],
+      };
 
       return {
         ...prev,
@@ -102,7 +108,12 @@ export default function AddProduct() {
     setForm((prev) => {
       const variants = [...prev.variants];
 
-      variants[variantIndex].attributes.splice(attributeIndex, 1);
+      variants[variantIndex] = {
+        ...variants[variantIndex],
+        attributes: variants[variantIndex].attributes.filter(
+          (_, index) => index !== attributeIndex,
+        ),
+      };
 
       return {
         ...prev,
@@ -148,7 +159,23 @@ export default function AddProduct() {
 
       variants[variantIndex] = {
         ...variants[variantIndex],
-        images: files,
+        images: [...variants[variantIndex].images, ...files],
+      };
+
+      return {
+        ...prev,
+        variants,
+      };
+    });
+  };
+
+  const handleRemoveVariantImage = (variantIndex, image) => {
+    setForm((prev) => {
+      const variants = [...prev.variants];
+
+      variants[variantIndex] = {
+        ...variants[variantIndex],
+        images: variants[variantIndex].images.filter((img) => img !== image),
       };
 
       return {
@@ -159,9 +186,18 @@ export default function AddProduct() {
   };
 
   const handleProductImageChange = (files) => {
+    setForm((prev) => {
+      return {
+        ...prev,
+        images: [...prev.images, ...files],
+      };
+    });
+  };
+
+  const handleRemoveProductImage = (image) => {
     setForm((prev) => ({
       ...prev,
-      images: files,
+      images: prev.images.filter((img) => img !== image),
     }));
   };
 
@@ -203,7 +239,9 @@ export default function AddProduct() {
       loading={loading}
       onChange={handleChange}
       onProductImageChange={handleProductImageChange}
+      onRemoveProductImage={handleRemoveProductImage}
       onVariantImageChange={handleVariantImageChange}
+      onRemoveVariantImage={handleRemoveVariantImage}
       onVariantChange={handleVariantChange}
       onAttributeChange={handleAttributeChange}
       onAddAttribute={handleAddAttribute}

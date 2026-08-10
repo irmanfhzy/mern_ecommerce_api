@@ -43,10 +43,9 @@ router.post(
   "/",
   authenticate,
   authorize(ROLE.ADMIN),
-  upload.any("images", 10),
+  upload.any(),
   validateRequestFiles(requestFilesSchemas.product.create),
   validateRequestBody(requestBodySchemas.product.create),
-  normalizeRequestBody(rules.product.create),
   addProductController,
 );
 
@@ -55,10 +54,9 @@ router.put(
   authenticate,
   authorize(ROLE.ADMIN),
   validateObjectId("params", "id"),
-  upload.any("images", 10),
+  upload.any(),
   validateRequestFiles(requestFilesSchemas.product.update),
   validateRequestBody(requestBodySchemas.product.update),
-  normalizeRequestBody(rules.product.update),
   updateProductController,
 );
 

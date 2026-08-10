@@ -4,6 +4,8 @@ import cloudinary from "../config/cloudinary.js";
 
 import Product from "../models/product.model.js";
 import Variant from "../models/variant.model.js";
+import Cart from "../models/cart.model.js";
+import Order from "../models/order.model.js";
 
 import IMAGE_CONFIG from "../constants/image.constant.js";
 import {
@@ -348,11 +350,28 @@ export const deleteVariantById = async (id) => {
 
   if (deletedVariant.images?.length) {
     await Promise.allSettled(
-      deletedVariant.images.map((img) =>
-        cloudinary.uploader.destroy(img.publicId),
-      ),
+      deletedVariant.images.map(async (img) => {
+        const used = await Order.exists({
+          "items.variantImages.publicId": img.publicId,
+        });
+
+        if (!used) {
+          await cloudinary.uploader.destroy(img.publicId);
+        }
+      }),
     );
   }
+
+  await Cart.updateMany(
+    {},
+    {
+      $pull: {
+        items: {
+          variantId: deletedVariant._id,
+        },
+      },
+    },
+  );
 
   return deletedVariant;
 };

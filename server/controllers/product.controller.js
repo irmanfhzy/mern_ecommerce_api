@@ -35,7 +35,7 @@ export const updateProductController = asyncHandler(async (req, res) => {
   const data = await productService.updateProductById(
     req.params.id,
     req.body,
-    req.file,
+    req.files,
   );
   res.status(200).json({ success: true, data });
 });

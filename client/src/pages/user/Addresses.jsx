@@ -104,7 +104,7 @@ export default function Addresses() {
           </div>
 
           <div className="mt-8 flex justify-center">
-            <Button size="lg" onClick={() => navigate("new")}>
+            <Button variant="primary" size="lg" onClick={() => navigate("new")}>
               Add Address
             </Button>
           </div>

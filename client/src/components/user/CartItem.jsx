@@ -1,6 +1,7 @@
 import QuantitySelector from "../common/QuantitySelector";
 import Badge from "./Badge";
 import Button from "../common/Button";
+import { getImageUrl } from "../../utils/imageHelpers";
 
 export default function CartItem({
   item,
@@ -27,8 +28,8 @@ export default function CartItem({
       </div>
 
       <img
-        src={product.image}
-        alt={product.name}
+        src={getImageUrl(variant.images?.[0] || product.images?.[0])}
+        alt={variant.name}
         className="w-24 h-24 rounded-xl border object-cover shrink-0"
       />
 

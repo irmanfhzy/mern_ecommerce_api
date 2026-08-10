@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import addressSchema from "./address.model.js";
+import imageSchema from "./image.model.js";
+import variantAttributeSchema from "./variantAttribute.model.js";
 import {
   ORDER_STATUS,
   PAYMENT_STATUS,
@@ -8,36 +10,62 @@ import {
 
 const orderItemSchema = new mongoose.Schema(
   {
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+
     variantId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Variant",
       required: true,
     },
-    name: {
+
+    productName: {
       type: String,
       required: true,
       trim: true,
     },
-    attributes: {
-      type: [
-        {
-          key: {
-            type: String,
-            required: true,
-          },
-          value: {
-            type: String,
-            required: true,
-          },
-        },
-      ],
+
+    productBrand: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    productSlug: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    productImages: {
+      type: [imageSchema],
       default: [],
     },
-    price: {
+
+    variantAttributes: {
+      type: [variantAttributeSchema],
+      default: [],
+    },
+
+    variantSku: {
+      type: String,
+      default: "",
+    },
+
+    variantImages: {
+      type: [imageSchema],
+      default: [],
+    },
+
+    sellingPrice: {
       type: Number,
       required: true,
       min: 0,
     },
+
     quantity: {
       type: Number,
       required: true,

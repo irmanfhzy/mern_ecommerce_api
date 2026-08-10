@@ -9,13 +9,11 @@ const addressSchema = new mongoose.Schema({
 
   recipientName: {
     type: String,
-    required: true,
     trim: true,
   },
 
   phone: {
     type: String,
-    required: true,
     trim: true,
   },
 

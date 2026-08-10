@@ -1,8 +1,7 @@
-import Button from "../common/Button";
+import Button from "./Button";
 
 export default function AddressForm({
   form,
-  loading = false,
 
   provinces = [],
   cities = [],
@@ -15,55 +14,64 @@ export default function AddressForm({
   onDistrictChange,
   onVillageChange,
 
-  onSubmit,
-  onCancel,
+  showRecipient = true,
+  showLabel = true,
+  showDefault = true,
 }) {
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <>
       {/* Recipient */}
-      <div className="grid gap-6 md:grid-cols-2">
+      {showRecipient && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-medium">
+              Recipient Name
+            </label>
+
+            <input
+              type="text"
+              name="recipientName"
+              value={form.recipientName}
+              onChange={onChange}
+              placeholder="John Doe"
+              className="w-full rounded-lg border px-4 py-2 outline-none transition focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium">
+              Phone Number
+            </label>
+
+            <input
+              type="text"
+              name="phone"
+              value={form.phone}
+              onChange={onChange}
+              placeholder="08123456789"
+              className="w-full rounded-lg border px-4 py-2 outline-none transition focus:border-blue-500"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Label */}
+      {showLabel && (
         <div>
           <label className="mb-2 block text-sm font-medium">
-            Recipient Name
+            Address Label
           </label>
 
           <input
             type="text"
-            name="recipientName"
-            value={form.recipientName}
+            name="label"
+            value={form.label}
             onChange={onChange}
-            placeholder="John Doe"
+            placeholder="Home, Office, Boarding House"
             className="w-full rounded-lg border px-4 py-2 outline-none transition focus:border-blue-500"
           />
         </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium">Phone Number</label>
-
-          <input
-            type="text"
-            name="phone"
-            value={form.phone}
-            onChange={onChange}
-            placeholder="08123456789"
-            className="w-full rounded-lg border px-4 py-2 outline-none transition focus:border-blue-500"
-          />
-        </div>
-      </div>
-
-      {/* Label */}
-      <div>
-        <label className="mb-2 block text-sm font-medium">Address Label</label>
-
-        <input
-          type="text"
-          name="label"
-          value={form.label}
-          onChange={onChange}
-          placeholder="Home, Office, Boarding House"
-          className="w-full rounded-lg border px-4 py-2 outline-none transition focus:border-blue-500"
-        />
-      </div>
+      )}
 
       {/* Region */}
       <div className="grid gap-6 md:grid-cols-2">
@@ -174,27 +182,18 @@ export default function AddressForm({
       </div>
 
       {/* Default Address */}
-      <label className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          name="isDefault"
-          checked={form.isDefault}
-          onChange={onChange}
-        />
+      {showDefault && (
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            name="isDefault"
+            checked={form.isDefault}
+            onChange={onChange}
+          />
 
-        <span className="text-sm">Set as default address</span>
-      </label>
-
-      {/* Action */}
-      <div className="flex justify-end gap-3 border-t pt-6">
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          Cancel
-        </Button>
-
-        <Button type="submit" loading={loading}>
-          Save Address
-        </Button>
-      </div>
-    </form>
+          <span className="text-sm">Set as default address</span>
+        </label>
+      )}
+    </>
   );
 }

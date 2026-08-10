@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import AddressForm from "../../components/user/AddressForm";
+import AddressForm from "../../components/common/AddressForm";
+import Button from "../../components/common/Button";
 
 import useIndonesiaRegion from "../../hooks/useIndonesiaRegion";
 
@@ -10,7 +11,7 @@ import { addAddress } from "../../services/user.service";
 export default function AddAddress() {
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
+  const [loadingButton, setLoadingButton] = useState(false);
 
   const {
     form,
@@ -30,7 +31,7 @@ export default function AddAddress() {
     e.preventDefault();
 
     try {
-      setLoading(true);
+      setLoadingButton(true);
 
       await addAddress(form);
 
@@ -38,7 +39,7 @@ export default function AddAddress() {
     } catch (error) {
       alert(error.response?.data?.message || error.message);
     } finally {
-      setLoading(false);
+      setLoadingButton(false);
     }
   };
 
@@ -50,10 +51,12 @@ export default function AddAddress() {
         <p className="mt-2 text-gray-500">Add a new shipping address.</p>
       </div>
 
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 rounded-2xl border bg-white p-6 shadow-sm"
+      >
         <AddressForm
           form={form}
-          loading={loading}
           provinces={provinces}
           cities={cities}
           districts={districts}
@@ -63,10 +66,18 @@ export default function AddAddress() {
           onCityChange={handleCityChange}
           onDistrictChange={handleDistrictChange}
           onVillageChange={handleVillageChange}
-          onSubmit={handleSubmit}
-          onCancel={() => navigate(-1)}
         />
-      </div>
+
+        <div className="flex justify-end gap-3 border-t pt-6">
+          <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
+            Cancel
+          </Button>
+
+          <Button type="submit" variant="primary" loading={loadingButton}>
+            Save Address
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

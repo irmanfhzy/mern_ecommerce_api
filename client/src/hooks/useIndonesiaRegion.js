@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 import {
   getProvinces,
@@ -48,7 +48,7 @@ export default function useIndonesiaRegion(initialData = {}) {
     }
   };
 
-  const initializeRegion = async (address) => {
+  const initializeRegion = useCallback(async (address) => {
     const [citiesRes, districtsRes, villagesRes] = await Promise.all([
       getCities(address.provinceId),
       getDistricts(address.cityId),
@@ -58,7 +58,7 @@ export default function useIndonesiaRegion(initialData = {}) {
     setCities(citiesRes.data);
     setDistricts(districtsRes.data);
     setVillages(villagesRes.data);
-  };
+  }, []);
 
   useEffect(() => {
     fetchProvinces();

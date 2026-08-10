@@ -101,7 +101,9 @@ export default function MyOrders() {
         {orders.map((order) => {
           const firstItem = order.items[0];
 
-          const image = firstItem?.variantId?.productId?.images?.[0]?.url;
+          const image =
+            firstItem?.variantImages?.[0]?.url ||
+            firstItem?.productImages?.[0]?.url;
 
           const moreItems = order.items.length - 1;
 
@@ -158,16 +160,18 @@ export default function MyOrders() {
               <div className="mt-6 flex flex-col gap-6 md:flex-row">
                 <img
                   src={getImageUrl(image)}
-                  alt={firstItem.name}
+                  alt={firstItem.productName}
                   className="h-24 w-24 rounded-xl border object-cover"
                 />
 
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg">{firstItem.name}</h3>
+                  <h3 className="font-semibold text-lg">
+                    {firstItem.productName}
+                  </h3>
 
-                  {firstItem.attributes?.length > 0 && (
+                  {firstItem.variantAttributes?.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {firstItem.attributes.map((attr, index) => (
+                      {firstItem.variantAttributes.map((attr, index) => (
                         <span
                           key={index}
                           className="rounded-full bg-gray-100 px-3 py-1 text-xs"

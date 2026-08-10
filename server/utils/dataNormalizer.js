@@ -7,14 +7,23 @@ const normalizeData = (data, rules = {}) => {
     let newValue = value;
 
     const rawRule = rules[key];
-    const rule =
-      typeof rawRule === "string" ? rawRule.toLowerCase().trim() : rawRule;
 
-    if (Array.isArray(value)) {
-      newValue = value.map((item) => {
+    let type = null;
+    let nestedRules = {};
+
+    if (typeof rawRule === "string") {
+      type = rawRule.toLowerCase().trim();
+    } else if (rawRule && typeof rawRule === "object") {
+      type = rawRule.type?.toLowerCase().trim();
+      nestedRules = rawRule.rules || rawRule;
+    }
+
+    if (Array.isArray(newValue)) {
+      newValue = newValue.map((item) => {
         if (typeof item === "object" && item !== null) {
-          return normalizeData(item, rule || {});
+          return normalizeData(item, nestedRules);
         }
+
         return item;
       });
 
@@ -22,29 +31,29 @@ const normalizeData = (data, rules = {}) => {
       continue;
     }
 
-    if (typeof value === "string") {
-      if (rule === "raw") {
+    if (typeof newValue === "string") {
+      if (type === "raw") {
         normalizedData[key] = newValue;
         continue;
       }
 
-      newValue = value.trim();
+      newValue = newValue.trim();
 
-      if (rule === "lowercase") {
+      if (type === "lowercase") {
         newValue = newValue.toLowerCase();
       }
 
-      if (rule === "uppercase") {
+      if (type === "uppercase") {
         newValue = newValue.toUpperCase();
       }
 
-      if (rule === "titlecase") {
+      if (type === "titlecase") {
         newValue = newValue
           .toLowerCase()
           .replace(/\b\w/g, (c) => c.toUpperCase());
       }
 
-      if (rule === "number") {
+      if (type === "number") {
         if (newValue === "") {
           throw new AppError("Number cannot be empty", 400);
         }
@@ -58,13 +67,31 @@ const normalizeData = (data, rules = {}) => {
         newValue = parsed;
       }
 
-      if (rule === "phoneid") {
+      if (type === "phoneid") {
         if (newValue.startsWith("62")) {
           newValue = "+" + newValue;
         } else if (newValue.startsWith("08")) {
           newValue = "+62" + newValue.slice(1);
         } else if (newValue.startsWith("8")) {
           newValue = "+62" + newValue;
+        }
+      }
+
+      if (type === "json") {
+        try {
+          newValue = JSON.parse(newValue);
+        } catch {
+          throw new AppError(`${key} must be valid JSON`, 400);
+        }
+
+        if (Array.isArray(newValue)) {
+          newValue = newValue.map((item) =>
+            typeof item === "object" && item !== null
+              ? normalizeData(item, nestedRules)
+              : item,
+          );
+        } else if (typeof newValue === "object" && newValue !== null) {
+          newValue = normalizeData(newValue, nestedRules);
         }
       }
     }

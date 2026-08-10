@@ -20,8 +20,15 @@ export const getImageUrl = (
     return fallback;
   }
 
+  const transformations = [];
+
+  if (width) transformations.push(`w_${width}`);
+  if (height) transformations.push(`h_${height}`);
+
   if (width || height) {
-    return url.replace("/upload/", `/upload/w_${width},h_${height},c_${crop}/`);
+    transformations.push(`c_${crop}`);
+
+    return url.replace("/upload/", `/upload/${transformations.join(",")}/`);
   }
 
   return url;

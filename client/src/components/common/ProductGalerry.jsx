@@ -4,7 +4,6 @@ export default function ProductGallery({ images, imageName }) {
   const [selectedImage, setSelectedImage] = useState(images[0] ?? null);
 
   useEffect(() => {
-    // eslint-disable-next-line
     setSelectedImage(images[0] ?? null);
   }, [images]);
 

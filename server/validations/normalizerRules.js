@@ -1,4 +1,4 @@
-export const rules = {
+const rules = {
   auth: {
     register: {
       name: "titlecase",
@@ -57,42 +57,70 @@ export const rules = {
       province: "titlecase",
     },
   },
-  product: {
-    create: {
-      name: "titlecase",
-      brand: "titlecase",
-    },
 
-    update: {
-      name: "titlecase",
-      brand: "titlecase",
-    },
-  },
   variant: {
     create: {
       attributes: {
-        key: "lowercase",
-        value: "lowercase",
+        type: "json",
+        rules: {
+          key: "lowercase",
+          value: "lowercase",
+        },
       },
       sku: "uppercase",
       stock: "number",
-      price: "number",
+      costPrice: "number",
+      sellingPrice: "number",
     },
 
     update: {
       attributes: {
-        key: "lowercase",
-        value: "lowercase",
+        type: "json",
+        rules: {
+          key: "lowercase",
+          value: "lowercase",
+        },
       },
       sku: "uppercase",
       stock: "number",
-      price: "number",
+      costPrice: "number",
+      sellingPrice: "number",
     },
   },
 
   stock: {
     update: {
       quantity: "number",
+    },
+  },
+
+  appSetting: {
+    save: {
+      appName: "titlecase",
+      about: "trim",
+
+      address: {
+        type: "json",
+        rules: {
+          label: "titlecase",
+          recipientName: "titlecase",
+          phone: "phoneid",
+          street: "titlecase",
+          village: "titlecase",
+          district: "titlecase",
+          city: "titlecase",
+          province: "titlecase",
+        },
+      },
+
+      contact: {
+        type: "json",
+        rules: {
+          label: "titlecase",
+          value: "trim",
+          link: "trim",
+        },
+      },
     },
   },
 };

@@ -40,10 +40,6 @@ export default function ProductsList() {
     navigate(`${PATHS.ADMIN.PRODUCTS}/${product._id}`);
   };
 
-  const handleEdit = (product) => {
-    navigate(`${PATHS.ADMIN.PRODUCTS}/${product._id}/edit`);
-  };
-
   const handleDelete = (product) => {
     openDialog({
       title: "Delete Product",
@@ -121,7 +117,6 @@ export default function ProductsList() {
       <ProductTable
         products={products}
         onView={handleView}
-        onEdit={handleEdit}
         onDelete={handleDelete}
         loading={loading}
         containerClassName="rounded-lg border border-gray-200 shadow-sm"

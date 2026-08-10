@@ -4,14 +4,20 @@ export const createOrder = (data) => {
   return api.post("/orders", data);
 };
 
+export const getAllOrders = (params = {}) => {
+  return api.get("/orders/admin", { params });
+};
+
+export const getOrderByIdForAdmin = (orderId) => {
+  return api.get(`/orders/admin/${orderId}`);
+};
+
 export const getOrderById = (orderId) => {
   return api.get(`/orders/${orderId}`);
 };
 
 export const getUserOrders = (params = {}) => {
-  return api.get("/orders/my-orders", {
-    params,
-  });
+  return api.get("/orders/my-orders", { params });
 };
 
 export const updateOrderStatus = (orderId, data) => {

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import AddressForm from "../../components/user/AddressForm";
+import AddressForm from "../../components/common/AddressForm";
+import Button from "../../components/common/Button";
+import Loading from "../../components/common/Loading";
 
 import useIndonesiaRegion from "../../hooks/useIndonesiaRegion";
 
@@ -11,7 +13,8 @@ export default function EditAddress() {
   const navigate = useNavigate();
   const { addressId } = useParams();
 
-  const [loading, setLoading] = useState(true);
+  const [loadingPage, setLoadingPage] = useState(true);
+  const [loadingButton, setLoadingButton] = useState(false);
 
   const {
     form,
@@ -31,7 +34,7 @@ export default function EditAddress() {
 
   useEffect(() => {
     try {
-      setLoading(true);
+      setLoadingPage(true);
       const fetchUser = async () => {
         const res = await getProfile();
         const address = res.data.data.addresses.find(
@@ -44,7 +47,7 @@ export default function EditAddress() {
     } catch (error) {
       alert(error.response?.data?.message || error.message);
     } finally {
-      setLoading(false);
+      setLoadingPage(false);
     }
   }, [addressId, setForm, initializeRegion]);
 
@@ -52,7 +55,7 @@ export default function EditAddress() {
     e.preventDefault();
 
     try {
-      setLoading(true);
+      setLoadingButton(true);
 
       await updateAddress(addressId, form);
 
@@ -60,22 +63,28 @@ export default function EditAddress() {
     } catch (error) {
       alert(error.response?.data?.message || error.message);
     } finally {
-      setLoading(false);
+      setLoadingButton(false);
     }
   };
+
+  if (loadingPage) {
+    return <Loading fullScreen />;
+  }
 
   return (
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Add Address</h1>
+        <h1 className="text-3xl font-bold">Edit Address</h1>
 
-        <p className="mt-2 text-gray-500">Add a new shipping address.</p>
+        <p className="mt-2 text-gray-500">Edit your shipping address.</p>
       </div>
 
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 rounded-2xl border bg-white p-6 shadow-sm"
+      >
         <AddressForm
           form={form}
-          loading={loading}
           provinces={provinces}
           cities={cities}
           districts={districts}
@@ -85,10 +94,18 @@ export default function EditAddress() {
           onCityChange={handleCityChange}
           onDistrictChange={handleDistrictChange}
           onVillageChange={handleVillageChange}
-          onSubmit={handleSubmit}
-          onCancel={() => navigate(-1)}
         />
-      </div>
+
+        <div className="flex justify-end gap-3 border-t pt-6">
+          <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
+            Cancel
+          </Button>
+
+          <Button type="submit" variant="primary" loading={loadingButton}>
+            Save Address
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

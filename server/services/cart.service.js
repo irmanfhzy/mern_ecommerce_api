@@ -12,10 +12,22 @@ const cartPopulate = {
   },
 };
 
+const getAvailableCart = (cart) => {
+  cart.items = cart.items.filter((item) => item.variantId);
+  return cart;
+};
+
 export const getCart = async (userId) => {
   const cart = await Cart.findOne({ userId }).populate(cartPopulate).lean();
 
-  return cart || { userId, items: [] };
+  if (!cart) {
+    return {
+      userId,
+      items: [],
+    };
+  }
+
+  return getAvailableCart(cart);
 };
 
 export const addToCart = async (userId, variantId, quantity) => {
@@ -135,7 +147,9 @@ export const updateCartItemQuantity = async (userId, variantId, quantity) => {
 
   await cart.save();
 
-  return await cart.populate(cartPopulate);
+  const populatedCart = await cart.populate(cartPopulate);
+
+  return getAvailableCart(populatedCart.toObject());
 };
 
 export const removeCartItem = async (userId, variantId) => {

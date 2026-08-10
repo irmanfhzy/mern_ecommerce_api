@@ -43,9 +43,15 @@ export default function ProductTableRow({
             View
           </Button>
 
-          <Button size="sm" variant="secondary" onClick={() => onEdit(product)}>
-            Edit
-          </Button>
+          {onEdit && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => onEdit(product)}
+            >
+              Edit
+            </Button>
+          )}
 
           <Button size="sm" variant="danger" onClick={() => onDelete(product)}>
             Delete

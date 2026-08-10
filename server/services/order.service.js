@@ -59,13 +59,22 @@ export const createOrder = async (userId, body) => {
         400,
       );
 
-      calculatedTotalPrice += variant.price * item.quantity;
+      calculatedTotalPrice += variant.sellingPrice * item.quantity;
 
       orderItems.push({
+        productId: variant.productId._id,
         variantId: variant._id,
-        name: variant.productId.name,
-        attributes: variant.attributes,
-        price: variant.price,
+
+        productName: variant.productId.name,
+        productBrand: variant.productId.brand,
+        productSlug: variant.productId.slug,
+        productImages: variant.productId.images,
+
+        variantAttributes: variant.attributes,
+        variantSku: variant.sku,
+        variantImages: variant.images,
+
+        sellingPrice: variant.sellingPrice,
         quantity: item.quantity,
       });
     }
@@ -114,17 +123,62 @@ export const createOrder = async (userId, body) => {
   }
 };
 
-export const getOrderById = async (orderId, userId) => {
-  const order = await Order.findOne({
-    _id: orderId,
-    userId,
-  })
-    .populate({
-      path: "items.variantId",
-      populate: {
-        path: "productId",
+export const getAllOrders = async (query) => {
+  const { search = "", status, page = 1, limit = 10 } = query;
+
+  const filter = {};
+
+  if (status) {
+    filter.status = status;
+  }
+
+  if (search) {
+    filter.$or = [
+      {
+        orderNumber: {
+          $regex: search,
+          $options: "i",
+        },
       },
-    })
+      {
+        "shippingAddress.recipientName": {
+          $regex: search,
+          $options: "i",
+        },
+      },
+    ];
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [items, totalItems] = await Promise.all([
+    Order.find(filter)
+      .populate({
+        path: "userId",
+        select: "name email",
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+
+    Order.countDocuments(filter),
+  ]);
+
+  return {
+    items,
+    pagination: {
+      page: Number(page),
+      limit: Number(limit),
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+    },
+  };
+};
+
+export const getOrderByIdForAdmin = async (orderId) => {
+  const order = await Order.findById(orderId)
+    .populate("userId", "name email phone")
     .lean();
 
   checker.checkDocument(order, "Order not found", 404);
@@ -132,16 +186,19 @@ export const getOrderById = async (orderId, userId) => {
   return order;
 };
 
+export const getOrderById = async (orderId, userId) => {
+  const order = await Order.findOne({
+    _id: orderId,
+    userId,
+  }).lean();
+
+  checker.checkDocument(order, "Order not found", 404);
+
+  return order;
+};
+
 export const getUserOrders = async (userId) => {
-  const orders = await Order.find({ userId })
-    .populate({
-      path: "items.variantId",
-      populate: {
-        path: "productId",
-      },
-    })
-    .sort({ createdAt: -1 })
-    .lean();
+  const orders = await Order.find({ userId }).sort({ createdAt: -1 }).lean();
 
   return orders;
 };
@@ -155,6 +212,16 @@ export const updateOrderStatus = async (orderId, status) => {
 
   if (!order) {
     throw new AppError("Order not found", 404);
+  }
+
+  if (
+    order.paymentStatus !== PAYMENT_STATUS.PAID &&
+    status !== ORDER_STATUS.CANCELLED
+  ) {
+    throw new AppError(
+      "Order cannot be processed before payment is completed",
+      400,
+    );
   }
 
   const allowedTransitions = {
@@ -200,6 +267,16 @@ export const updatePaymentStatus = async (orderId, paymentStatus) => {
 
   if (order.paymentStatus === PAYMENT_STATUS.REFUNDED) {
     throw new AppError("Refunded payment cannot be updated", 400);
+  }
+
+  if (
+    order.status === ORDER_STATUS.COMPLETED ||
+    order.status === ORDER_STATUS.CANCELLED
+  ) {
+    throw new AppError(
+      "Payment status cannot be updated for completed or cancelled orders",
+      400,
+    );
   }
 
   order.paymentStatus = paymentStatus;

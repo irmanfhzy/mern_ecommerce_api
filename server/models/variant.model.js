@@ -1,23 +1,6 @@
 import mongoose from "mongoose";
 import imageSchema from "./image.model.js";
-
-const attributeSchema = new mongoose.Schema(
-  {
-    key: {
-      type: String,
-      required: true,
-      trim: true,
-      lowercase: true,
-    },
-    value: {
-      type: String,
-      required: true,
-      trim: true,
-      lowercase: true,
-    },
-  },
-  { _id: false },
-);
+import variantAttributeSchema from "./variantAttribute.model.js";
 
 const variantSchema = new mongoose.Schema(
   {
@@ -28,7 +11,7 @@ const variantSchema = new mongoose.Schema(
       index: true,
     },
     attributes: {
-      type: [attributeSchema],
+      type: [variantAttributeSchema],
       default: [],
       validate: {
         validator: function (attrs) {

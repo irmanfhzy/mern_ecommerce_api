@@ -2,6 +2,8 @@ import express from "express";
 
 import {
   createOrderController,
+  getAllOrdersController,
+  getOrderByIdForAdminController,
   getOrderByIdController,
   getUserOrdersController,
   updateOrderStatusController,
@@ -19,8 +21,20 @@ const router = express.Router();
 router.use(authenticate);
 
 router.post("/", createOrderController);
+
 router.get("/my-orders", getUserOrdersController);
+
+router.get("/admin", authorize(ROLE.ADMIN), getAllOrdersController);
+
+router.get(
+  "/admin/:id",
+  authorize(ROLE.ADMIN),
+  validateObjectId("params", "id"),
+  getOrderByIdForAdminController,
+);
+
 router.get("/:id", validateObjectId("params", "id"), getOrderByIdController);
+
 router.patch(
   "/:id/cancel",
   validateObjectId("params", "id"),

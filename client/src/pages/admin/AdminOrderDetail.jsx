@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useState, useContext } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { ConfirmationDialogContext } from "../../contexts/ConfirmationDialogContext";
-
-import { getOrderById, cancelOrder } from "../../services/order.service";
+import { getOrderByIdForAdmin } from "../../services/order.service";
 
 import formatPrice from "../../utils/priceFormatter";
 
-import { ORDER_STATUS, PAYMENT_METHOD } from "@ecommerce/shared/constants";
+import { PAYMENT_METHOD } from "@ecommerce/shared/constants";
+
+import PATHS from "../../constants/paths";
+
 import AddressCard from "../../components/user/AddressCard";
 import OrderItemCard from "../../components/user/OrderItemCard";
 import Button from "../../components/common/Button";
 import Loading from "../../components/common/Loading";
-import PATHS from "../../constants/paths";
 
 function formatDate(date) {
   if (!date) return "-";
@@ -23,14 +23,12 @@ function formatDate(date) {
   });
 }
 
-export default function OrderDetail() {
+export default function AdminOrderDetail() {
   const navigate = useNavigate();
   const { orderId } = useParams();
-  const { openDialog, closeDialog } = useContext(ConfirmationDialogContext);
 
   const [order, setOrder] = useState(null);
   const [loadingPage, setLoadingPage] = useState(true);
-  const [loadingButton, setLoadingButton] = useState(false);
 
   const orderItems = useMemo(() => {
     return order?.items?.map((item) => ({
@@ -47,13 +45,16 @@ export default function OrderDetail() {
     const fetchOrder = async () => {
       try {
         setLoadingPage(true);
-        const res = await getOrderById(orderId);
+
+        const res = await getOrderByIdForAdmin(orderId);
 
         setOrder(res.data.data);
       } catch (error) {
         alert(error.response?.data?.message || error.message);
 
-        navigate("/orders", { replace: true });
+        navigate("/admin/orders", {
+          replace: true,
+        });
       } finally {
         setLoadingPage(false);
       }
@@ -80,23 +81,8 @@ export default function OrderDetail() {
     }
   }, [order]);
 
-  const handleCancelOrder = async () => {
-    try {
-      setLoadingButton(true);
-
-      const res = await cancelOrder(order._id);
-
-      setOrder(res.data.data);
-    } catch (error) {
-      alert(error.response?.data?.message || error.message);
-    } finally {
-      setLoadingButton(false);
-      closeDialog();
-    }
-  };
-
   if (loadingPage) {
-    return <Loading fullScreen={true} />;
+    return <Loading fullScreen />;
   }
 
   if (!order) {
@@ -109,22 +95,40 @@ export default function OrderDetail() {
 
   return (
     <div className="mx-auto max-w-6xl p-6">
-      <div className="mb-8 flex items-center justify-start gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Order Detail</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Order Detail</h1>
 
-          <p className="mt-2 text-gray-500">
-            Order Number : {order.orderNumber}
-          </p>
+        <p className="mt-2 text-gray-500">Order Number : {order.orderNumber}</p>
 
-          <p className="text-gray-500">
-            Created : {formatDate(order.createdAt)}
-          </p>
-        </div>
+        <p className="text-gray-500">Created : {formatDate(order.createdAt)}</p>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
         <div className="space-y-6">
+          <section className="rounded-2xl border bg-white p-6">
+            <h2 className="mb-4 text-lg font-semibold">Customer Information</h2>
+
+            <div className="grid gap-4 text-sm sm:grid-cols-2">
+              <div>
+                <p className="text-gray-500">Name</p>
+
+                <p className="font-medium">{order.userId?.name || "-"}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Email</p>
+
+                <p className="font-medium">{order.userId?.email || "-"}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Phone</p>
+
+                <p className="font-medium">{order.userId?.phone || "-"}</p>
+              </div>
+            </div>
+          </section>
+
           <section className="rounded-2xl border bg-white p-6">
             <h2 className="mb-4 text-lg font-semibold">Shipping Address</h2>
 
@@ -144,9 +148,7 @@ export default function OrderDetail() {
               <div>
                 <p className="text-gray-500">Payment Status</p>
 
-                <p className="font-medium">
-                  {order.paymentStatus.toUpperCase()}
-                </p>
+                <p className="font-medium uppercase">{order.paymentStatus}</p>
               </div>
 
               <div>
@@ -175,6 +177,7 @@ export default function OrderDetail() {
             <OrderItemCard items={orderItems} />
           </section>
         </div>
+
         <aside className="h-fit rounded-2xl border bg-white p-6">
           <h2 className="mb-6 text-lg font-semibold">Order Summary</h2>
 
@@ -200,37 +203,17 @@ export default function OrderDetail() {
             </div>
           </div>
 
-          <div className="mt-8 space-y-3">
-            {order.status === ORDER_STATUS.PENDING && (
-              <Button
-                className="w-full"
-                variant="danger"
-                loading={loadingButton}
-                onClick={() =>
-                  openDialog({
-                    title: "Cancel Order",
-                    message: "Are you sure you want to cancel this order?",
-                    confirmVariant: "danger",
-                    cancelVariant: "ghost",
-                    onConfirm: () => handleCancelOrder(),
-                    loading: loadingButton,
-                  })
-                }
-              >
-                Cancel Order
-              </Button>
-            )}
-
+          <div className="mt-8">
             <Button
               className="w-full"
-              variant="ghost"
-              onClick={() => navigate(PATHS.USER.MY_ORDERS)}
+              variant="outline"
+              onClick={() => navigate(PATHS.ADMIN.ORDERS)}
             >
-              Back to My Orders
+              Back to Orders
             </Button>
           </div>
 
-          <div className="mt-8 border-t pt-6 text-sm space-y-3">
+          <div className="mt-8 space-y-3 border-t pt-6 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500">Order Status</span>
 

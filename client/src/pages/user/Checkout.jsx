@@ -7,6 +7,7 @@ import { ConfirmationDialogContext } from "../../contexts/ConfirmationDialogCont
 import Button from "../../components/common/Button";
 import AddressCard from "../../components/user/AddressCard";
 import OrderItemCard from "../../components/user/OrderItemCard";
+import Loading from "../../components/common/Loading";
 
 import formatPrice from "../../utils/priceFormatter";
 
@@ -68,6 +69,8 @@ export default function Checkout() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        setLoading(true);
+
         const res = await getProfile();
 
         const addresses = res.data.data.addresses;
@@ -162,6 +165,10 @@ export default function Checkout() {
         <p className="text-gray-500">No items selected for checkout.</p>
       </div>
     );
+  }
+
+  if (loading) {
+    return <Loading fullScreen={true} />;
   }
 
   return (

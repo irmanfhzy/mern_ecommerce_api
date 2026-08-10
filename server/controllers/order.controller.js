@@ -6,8 +6,19 @@ export const createOrderController = asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, data });
 });
 
+export const getAllOrdersController = asyncHandler(async (req, res) => {
+  const data = await orderService.getAllOrders(req.query);
+
+  res.status(200).json({ success: true, ...data });
+});
+
 export const getOrderByIdController = asyncHandler(async (req, res) => {
   const data = await orderService.getOrderById(req.params.id, req.user.userId);
+  res.status(200).json({ success: true, data });
+});
+
+export const getOrderByIdForAdminController = asyncHandler(async (req, res) => {
+  const data = await orderService.getOrderByIdForAdmin(req.params.id);
   res.status(200).json({ success: true, data });
 });
 
