@@ -11,9 +11,13 @@ import ProductGallery from "../../components/common/ProductGalerry";
 import VariantSelector from "../../components/user/VariantSelector";
 import Badge from "../../components/user/Badge";
 import Loading from "../../components/common/Loading";
+import Button from "../../components/common/Button";
 
 import formatPrice from "../../utils/priceFormatter";
 import { normalizeImages } from "../../utils/imageHelpers";
+import { capitalize } from "../../utils/textFormatter";
+
+import PATHS from "../../constants/paths";
 
 export default function ProductDetail() {
   const { productId } = useParams();
@@ -41,14 +45,21 @@ export default function ProductDetail() {
   }, [productId]);
 
   const galleryImages = useMemo(() => {
-    const imgs = selectedVariant?.images?.length
-      ? selectedVariant.images
-      : product?.images?.length
-        ? product.images
-        : [];
+    const productImages = product?.images ?? [];
 
-    return normalizeImages(imgs);
-  }, [product, selectedVariant]);
+    const variantImages =
+      product?.variants?.flatMap((variant) => variant.images ?? []) ?? [];
+
+    return normalizeImages([...productImages, ...variantImages]);
+  }, [product]);
+
+  const selectedVariantImage = useMemo(() => {
+    if (!selectedVariant?.images?.length) {
+      return null;
+    }
+
+    return normalizeImages([selectedVariant.images[0]])[0] ?? null;
+  }, [selectedVariant]);
 
   const minPrice = product?.priceRange?.min
     ? formatPrice(product.priceRange.min)
@@ -58,8 +69,8 @@ export default function ProductDetail() {
     ? formatPrice(product.priceRange.max)
     : "N/A";
 
-  const selectedVariantPrice = selectedVariant?.price
-    ? formatPrice(selectedVariant.price)
+  const selectedVariantPrice = selectedVariant?.sellingPrice
+    ? formatPrice(selectedVariant.sellingPrice)
     : null;
 
   const handleSelectVariant = (variant) => {
@@ -70,7 +81,7 @@ export default function ProductDetail() {
   const handleAddToCart = async () => {
     try {
       if (!user) {
-        navigate("/login", {
+        navigate(PATHS.PUBLIC.LOGIN, {
           state: { from: location },
         });
         return;
@@ -82,9 +93,33 @@ export default function ProductDetail() {
       }
 
       await addToCart(selectedVariant._id, quantity);
+      alert("Added to cart");
     } catch (error) {
-      console.log(error.message);
+      alert(error.response?.data?.message ?? "Failed to add to cart");
     }
+  };
+
+  const handleBuyNow = () => {
+    if (!user) {
+      navigate(PATHS.PUBLIC.LOGIN, {
+        state: { from: location },
+      });
+      return;
+    }
+
+    if (!selectedVariant) {
+      alert("Please select a variant");
+      return;
+    }
+
+    const buyNowItem = {
+      variantId: selectedVariant._id,
+      quantity,
+    };
+
+    localStorage.setItem("buyNowItem", JSON.stringify(buyNowItem));
+
+    navigate(`${PATHS.USER.CHECKOUT}?mode=buy-now`);
   };
 
   const incrementQuantity = () => {
@@ -103,7 +138,11 @@ export default function ProductDetail() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        <ProductGallery images={galleryImages} imageName={product.name} />
+        <ProductGallery
+          images={galleryImages}
+          imageName={product.name}
+          initialImage={selectedVariantImage}
+        />
 
         <div className="flex flex-col gap-6">
           <Badge label={product.brand} />
@@ -111,11 +150,22 @@ export default function ProductDetail() {
           <h1 className="text-3xl font-semibold">{product.name}</h1>
 
           <div className="text-3xl font-bold text-blue-600">
-            {selectedVariantPrice ?? `${minPrice} - ${maxPrice}`}
+            {selectedVariantPrice ??
+              (minPrice === maxPrice ? minPrice : `${minPrice} - ${maxPrice}`)}
           </div>
 
           <div>
             <h2 className="font-medium mb-3">Variant</h2>
+            {selectedVariant && (
+              <span>
+                {selectedVariant.attributes
+                  .map(
+                    (attr) =>
+                      `${capitalize(attr.key)}: ${capitalize(attr.value)}`,
+                  )
+                  .join(", ")}
+              </span>
+            )}
 
             <VariantSelector
               variants={product.variants}
@@ -126,7 +176,7 @@ export default function ProductDetail() {
 
           <div>Stock: {selectedVariant?.stock ?? "-"}</div>
 
-          {product.variants.length > 0 && (
+          {product.variants.length > 0 && selectedVariant && (
             <QuantitySelector
               quantity={quantity}
               decrementQuantity={decrementQuantity}
@@ -135,16 +185,21 @@ export default function ProductDetail() {
           )}
 
           <div className="flex gap-4">
-            <button
+            <Button
+              variant="ghost"
               onClick={handleAddToCart}
               className="flex-1 py-3 border border-blue-600 text-blue-600 rounded-lg"
             >
               Add to Cart
-            </button>
+            </Button>
 
-            <button className="flex-1 py-3 bg-blue-600 text-white rounded-lg">
+            <Button
+              variant="primary"
+              className="flex-1 py-3 bg-blue-600 text-white rounded-lg"
+              onClick={handleBuyNow}
+            >
               Buy Now
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -152,7 +207,35 @@ export default function ProductDetail() {
       <div className="mt-16">
         <h2 className="text-2xl font-semibold mb-4">Description</h2>
         <div className="border rounded-2xl p-6 whitespace-pre-line">
-          {product.description}
+          <article
+            className="
+          prose
+          max-w-none
+
+          prose-headings:font-bold
+          prose-headings:text-gray-900
+
+          prose-p:text-gray-700
+          prose-p:leading-7
+
+          prose-a:text-blue-600
+          prose-a:underline
+          prose-a:underline-offset-2
+
+          prose-strong:text-gray-900
+
+          prose-blockquote:border-l-4
+          prose-blockquote:border-gray-300
+          prose-blockquote:text-gray-600
+
+          prose-ul:text-gray-700
+          prose-ol:text-gray-700
+          prose-li:my-1
+        "
+            dangerouslySetInnerHTML={{
+              __html: product.description ?? "",
+            }}
+          />
         </div>
       </div>
     </div>

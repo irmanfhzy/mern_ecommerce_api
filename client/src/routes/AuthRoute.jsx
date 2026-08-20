@@ -1,19 +1,25 @@
 import AuthLayout from "../layouts/AuthLayout";
+import AuthRoute from "./ProtectedAuthRoute";
 
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 
 const authRoute = [
   {
-    element: <AuthLayout />,
+    element: <AuthRoute />,
     children: [
       {
-        path: "/login",
-        element: <Login />,
-      },
-      {
-        path: "/register",
-        element: <Register />,
+        element: <AuthLayout />,
+        children: [
+          {
+            path: "/login",
+            element: <Login />,
+          },
+          {
+            path: "/register",
+            element: <Register />,
+          },
+        ],
       },
     ],
   },

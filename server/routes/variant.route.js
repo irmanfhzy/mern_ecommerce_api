@@ -39,7 +39,7 @@ router.use(authorize(ROLE.ADMIN));
 router.post(
   "/product/:productId",
   validateObjectId("params", "productId"),
-  upload.array("images", 10),
+  upload.array("variantImages", 10),
   validateRequestFiles(requestFilesSchemas.variant.create),
   validateRequestBody(requestBodySchemas.variant.create),
   normalizeRequestBody(rules.variant.create),
@@ -49,7 +49,7 @@ router.post(
 router.patch(
   "/:id",
   validateObjectId("params", "id"),
-  upload.array("images", 10),
+  upload.array("variantImages", 10),
   validateRequestFiles(requestFilesSchemas.variant.update),
   validateRequestBody(requestBodySchemas.variant.update),
   normalizeRequestBody(rules.variant.update),

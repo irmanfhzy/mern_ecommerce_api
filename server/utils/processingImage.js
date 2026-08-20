@@ -3,7 +3,7 @@ import sharp from "sharp";
 const processImage = async (buffer, config) => {
   return sharp(buffer)
     .resize(config.WIDTH, config.HEIGHT, {
-      fit: "cover",
+      fit: config.FIT,
     })
     .webp({
       quality: 85,

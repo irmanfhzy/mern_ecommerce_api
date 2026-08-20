@@ -86,7 +86,7 @@ export default function MyOrders() {
 
         <p className="mt-4 text-gray-500">You haven't placed any orders yet.</p>
 
-        <Button className="mt-8" onClick={() => navigate("/products")}>
+        <Button className="mt-8" onClick={() => navigate("/")}>
           Continue Shopping
         </Button>
       </div>
@@ -132,11 +132,11 @@ export default function MyOrders() {
 
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        statusColors[order.status] ??
+                        statusColors[order.orderStatus] ??
                         "bg-gray-100 text-gray-700"
                       }`}
                     >
-                      {order.status.toUpperCase()}
+                      {order.orderStatus.toUpperCase()}
                     </span>
                   </div>
 
@@ -174,7 +174,7 @@ export default function MyOrders() {
                       {firstItem.variantAttributes.map((attr, index) => (
                         <span
                           key={index}
-                          className="rounded-full bg-gray-100 px-3 py-1 text-xs"
+                          className="rounded-full bg-gray-100 px-3 py-1 text-sm"
                         >
                           {attr.key}: {attr.value}
                         </span>

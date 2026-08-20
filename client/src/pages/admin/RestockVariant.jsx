@@ -137,8 +137,6 @@ export default function RestockVariant() {
               onChange={(e) => handleChange("reason", e.target.value)}
               className="w-full rounded border px-3 py-2"
             >
-              <option value={INVENTORY_REASON.INITIAL}>Initial Stock</option>
-
               <option value={INVENTORY_REASON.RESTOCK}>Restock</option>
 
               <option value={INVENTORY_REASON.ADJUSTMENT}>

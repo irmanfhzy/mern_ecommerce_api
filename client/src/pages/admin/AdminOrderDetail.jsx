@@ -36,7 +36,7 @@ export default function AdminOrderDetail() {
       productName: item.productName,
       variantImage: item.variantImages?.[0]?.url,
       attributes: item.variantAttributes,
-      price: item.sellingPrice,
+      sellingPrice: item.sellingPrice,
       quantity: item.quantity,
     }));
   }, [order]);
@@ -217,7 +217,9 @@ export default function AdminOrderDetail() {
             <div className="flex justify-between">
               <span className="text-gray-500">Order Status</span>
 
-              <span className="font-medium capitalize">{order.status}</span>
+              <span className="font-medium capitalize">
+                {order.ordertStatus}
+              </span>
             </div>
 
             <div className="flex justify-between">

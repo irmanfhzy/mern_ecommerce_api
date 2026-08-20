@@ -1,6 +1,6 @@
 import sanitizeHtml from "sanitize-html";
 
-const sanitizeAbout = (html = "") => {
+const sanitizeHtmlValue = (html = "") => {
   return sanitizeHtml(html, {
     allowedTags: [
       "p",
@@ -37,4 +37,4 @@ const sanitizeAbout = (html = "") => {
   });
 };
 
-export default sanitizeAbout;
+export default sanitizeHtmlValue;

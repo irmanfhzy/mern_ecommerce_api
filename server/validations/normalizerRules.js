@@ -96,7 +96,8 @@ const rules = {
 
   appSetting: {
     save: {
-      appName: "titlecase",
+      appName: "trim",
+      appDescription: "trim",
       about: "trim",
 
       address: {
@@ -116,7 +117,16 @@ const rules = {
       contact: {
         type: "json",
         rules: {
-          label: "titlecase",
+          label: "trim",
+          value: "trim",
+          link: "trim",
+        },
+      },
+
+      socialMedia: {
+        type: "json",
+        rules: {
+          label: "trim",
           value: "trim",
           link: "trim",
         },

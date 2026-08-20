@@ -1,4 +1,5 @@
 import ImageUploadfield from "../common/ImageUploadField";
+import RichTextEditor from "../common/RichTextEditor";
 
 export default function ProductInfoForm({
   form,
@@ -37,11 +38,9 @@ export default function ProductInfoForm({
       <div className="mt-4">
         <label className="mb-2 block font-medium">Description</label>
 
-        <textarea
-          rows={5}
+        <RichTextEditor
           value={form.description}
-          onChange={(e) => onChange("description", e.target.value)}
-          className="w-full rounded border px-3 py-2"
+          onChange={(value) => onChange("description", value)}
         />
       </div>
 
@@ -82,6 +81,7 @@ export default function ProductInfoForm({
           maxFiles={5}
           onChange={onImageChange}
           onRemove={onRemoveImage}
+          imageClassName="h-24 w-24 rounded border object-cover"
         />
       </div>
     </div>

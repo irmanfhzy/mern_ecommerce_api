@@ -26,7 +26,7 @@ const requestFilesSchemas = {
 
   variant: {
     create: {
-      images: {
+      variantImages: {
         required: true,
         min: 1,
         max: 10,
@@ -34,7 +34,7 @@ const requestFilesSchemas = {
     },
 
     update: {
-      images: {
+      variantImages: {
         min: 1,
         max: 10,
       },

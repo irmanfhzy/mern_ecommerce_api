@@ -92,11 +92,11 @@ const requestBodySchemas = {
 
   variant: {
     create: {
-      required: ["sku", "costPrice", "selligPrice"],
+      required: ["sku", "costPrice", "sellingPrice"],
     },
 
     update: {
-      notEmpty: ["sku", "costPrice", "selligPrice"],
+      notEmpty: ["sku", "costPrice", "sellingPrice"],
     },
   },
 
@@ -120,7 +120,7 @@ const requestBodySchemas = {
   },
   appSetting: {
     save: {
-      required: ["appName", "about"],
+      required: ["appName"],
     },
   },
 };

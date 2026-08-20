@@ -38,7 +38,7 @@ export default function OrderDetail() {
       productName: item.productName,
       variantImage: item.variantImages?.[0]?.url,
       attributes: item.variantAttributes,
-      price: item.sellingPrice,
+      sellingPrice: item.sellingPrice,
       quantity: item.quantity,
     }));
   }, [order]);
@@ -61,24 +61,6 @@ export default function OrderDetail() {
 
     fetchOrder();
   }, [orderId, navigate]);
-
-  const paymentMethodLabel = useMemo(() => {
-    if (!order) return "-";
-
-    switch (order.paymentMethod) {
-      case PAYMENT_METHOD.COD:
-        return "Cash On Delivery";
-
-      case PAYMENT_METHOD.BANK_TRANSFER:
-        return "Bank Transfer";
-
-      case PAYMENT_METHOD.E_WALLET:
-        return "E-Wallet";
-
-      default:
-        return order.paymentMethod;
-    }
-  }, [order]);
 
   const handleCancelOrder = async () => {
     try {
@@ -138,7 +120,9 @@ export default function OrderDetail() {
               <div>
                 <p className="text-gray-500">Payment Method</p>
 
-                <p className="font-medium">{paymentMethodLabel}</p>
+                <p className="font-medium">
+                  {PAYMENT_METHOD[order.paymentMethod] ?? order.paymentMethod}
+                </p>
               </div>
 
               <div>
@@ -201,7 +185,7 @@ export default function OrderDetail() {
           </div>
 
           <div className="mt-8 space-y-3">
-            {order.status === ORDER_STATUS.PENDING && (
+            {order.orderStatus === ORDER_STATUS.PENDING && (
               <Button
                 className="w-full"
                 variant="danger"
@@ -234,7 +218,9 @@ export default function OrderDetail() {
             <div className="flex justify-between">
               <span className="text-gray-500">Order Status</span>
 
-              <span className="font-medium capitalize">{order.status}</span>
+              <span className="font-medium capitalize">
+                {order.orderStatus}
+              </span>
             </div>
 
             <div className="flex justify-between">
@@ -248,7 +234,9 @@ export default function OrderDetail() {
             <div className="flex justify-between">
               <span className="text-gray-500">Payment Method</span>
 
-              <span className="font-medium">{paymentMethodLabel}</span>
+              <span className="font-medium capitalize">
+                {PAYMENT_METHOD[order.paymentMethod] ?? order.paymentMethod}
+              </span>
             </div>
           </div>
         </aside>

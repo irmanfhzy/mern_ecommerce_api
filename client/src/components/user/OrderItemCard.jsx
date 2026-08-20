@@ -45,14 +45,16 @@ export default function OrderItemCard({ items }) {
               <div className="text-right">
                 <p className="text-sm text-gray-500">Price</p>
 
-                <p className="font-semibold">{formatPrice(item.price)}</p>
+                <p className="font-semibold">
+                  {formatPrice(item.sellingPrice)}
+                </p>
               </div>
 
               <div className="text-right">
                 <p className="text-sm text-gray-500">Subtotal</p>
 
                 <p className="font-bold">
-                  {formatPrice(item.price * item.quantity)}
+                  {formatPrice(item.sellingPrice * item.quantity)}
                 </p>
               </div>
             </div>

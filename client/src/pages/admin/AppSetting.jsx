@@ -35,9 +35,11 @@ export default function AppSetting() {
 
   const [form, setForm] = useState({
     appName: "",
+    appDescription: "",
     about: "",
 
     contact: [],
+    socialMedia: [],
 
     logo: null,
     favicon: null,
@@ -55,8 +57,10 @@ export default function AppSetting() {
 
     setForm({
       appName: appSetting.appName,
+      appDescription: appSetting.appDescription,
       about: appSetting.about,
       contact: appSetting.contact ?? [],
+      socialMedia: appSetting.socialMedia ?? [],
       logo: appSetting.logo,
       favicon: appSetting.favicon,
     });
@@ -78,11 +82,11 @@ export default function AppSetting() {
     }));
   };
 
-  const handleContactChange = (index, field, value) => {
+  const handleItemChange = (type, index, field, value) => {
     setForm((prev) => ({
       ...prev,
 
-      contact: prev.contact.map((item, i) =>
+      [type]: prev[type].map((item, i) =>
         i === index
           ? {
               ...item,
@@ -93,12 +97,12 @@ export default function AppSetting() {
     }));
   };
 
-  const handleAddContact = () => {
+  const handleAddItem = (type) => {
     setForm((prev) => ({
       ...prev,
 
-      contact: [
-        ...prev.contact,
+      [type]: [
+        ...prev[type],
 
         {
           label: "",
@@ -109,11 +113,11 @@ export default function AppSetting() {
     }));
   };
 
-  const handleRemoveContact = (index) => {
+  const handleRemoveItem = (type, index) => {
     setForm((prev) => ({
       ...prev,
 
-      contact: prev.contact.filter((_, i) => i !== index),
+      [type]: prev[type].filter((_, i) => i !== index),
     }));
   };
 
@@ -148,9 +152,11 @@ export default function AppSetting() {
       const formData = new FormData();
 
       formData.append("appName", form.appName);
+      formData.append("appDescription", form.appDescription);
       formData.append("about", form.about);
       formData.append("address", JSON.stringify(address));
       formData.append("contact", JSON.stringify(form.contact));
+      formData.append("socialMedia", JSON.stringify(form.socialMedia));
 
       formData.append("removeLogo", removeLogo);
       formData.append("removeFavicon", removeFavicon);
@@ -205,6 +211,20 @@ export default function AppSetting() {
             </div>
 
             <div>
+              <label className="mb-2 block font-medium">
+                Description of Application
+              </label>
+
+              <textarea
+                name="appDescription"
+                rows={2}
+                value={form.appDescription}
+                onChange={handleChange}
+                className="w-full rounded-lg border p-3"
+              />
+            </div>
+
+            <div>
               <label className="mb-2 block font-medium">About</label>
 
               <RichTextEditor
@@ -244,15 +264,43 @@ export default function AppSetting() {
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-lg font-semibold">Contacts</h2>
 
-            <Button type="button" onClick={handleAddContact} variant="primary">
+            <Button
+              type="button"
+              onClick={() => handleAddItem("contact")}
+              variant="primary"
+            >
               Add Contact
             </Button>
           </div>
 
           <ContactTable
             contacts={form.contact}
-            onChange={handleContactChange}
-            onRemove={handleRemoveContact}
+            onChange={(index, field, value) =>
+              handleItemChange("contact", index, field, value)
+            }
+            onRemove={(index) => handleRemoveItem("contact", index)}
+          />
+        </section>
+
+        <section className="rounded-2xl border bg-white p-6">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Social Media</h2>
+
+            <Button
+              type="button"
+              onClick={() => handleAddItem("socialMedia")}
+              variant="primary"
+            >
+              Add Social Media
+            </Button>
+          </div>
+
+          <ContactTable
+            contacts={form.socialMedia}
+            onChange={(index, field, value) =>
+              handleItemChange("socialMedia", index, field, value)
+            }
+            onRemove={(index) => handleRemoveItem("socialMedia", index)}
           />
         </section>
 
@@ -266,6 +314,7 @@ export default function AppSetting() {
             images={logoFiles.length ? logoFiles : form.logo ? [form.logo] : []}
             onChange={(files) => setLogoFiles(files)}
             onRemove={handleRemoveLogo}
+            imageClassName="h-24 w-auto rounded border object-contain"
           />
 
           <ImageUploadField

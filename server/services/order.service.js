@@ -2,8 +2,10 @@ import mongoose from "mongoose";
 
 import Order from "../models/order.model.js";
 import Variant from "../models/variant.model.js";
+import Cart from "../models/cart.model.js";
 
 import { createInventoryHistory } from "./inventoryHistory.service.js";
+import { createPayment } from "./payment.service.js";
 
 import generateOrderNumber from "../utils/orderNumberGenerator.js";
 import AppError from "../utils/AppError.js";
@@ -12,26 +14,22 @@ import * as checker from "../utils/errorChecker.js";
 import {
   ORDER_STATUS,
   PAYMENT_STATUS,
-  PAYMENT_METHOD,
   INVENTORY_TYPE,
   INVENTORY_REASON,
 } from "@ecommerce/shared/constants/index.js";
 
 export const createOrder = async (userId, body) => {
-  const { items, totalPrice, shippingAddress, paymentMethod } = body;
+  const { items, totalPrice, shippingAddress } = body;
+
   if (!items || items.length === 0) {
     throw new AppError("Items cannot be empty", 400);
   }
 
-  if (!Object.values(PAYMENT_METHOD).includes(paymentMethod)) {
-    throw new AppError("Invalid payment method", 400);
-  }
-
   const session = await mongoose.startSession();
 
-  session.startTransaction();
-
   try {
+    session.startTransaction();
+
     const { orderId, orderNumber } = generateOrderNumber();
 
     let calculatedTotalPrice = 0;
@@ -92,9 +90,8 @@ export const createOrder = async (userId, body) => {
       userId,
       items: orderItems,
       totalPrice: calculatedTotalPrice,
-      paymentMethod,
       paymentStatus: PAYMENT_STATUS.PENDING,
-      status: ORDER_STATUS.PENDING,
+      orderStatus: ORDER_STATUS.PENDING,
       shippingAddress,
     });
 
@@ -111,11 +108,36 @@ export const createOrder = async (userId, body) => {
       });
     }
 
+    const cart = await Cart.findOne({ userId }).session(session);
+
+    checker.checkDocument(cart, "Cart not found", 404);
+
+    cart.items = cart.items.filter(
+      (item) =>
+        !order.items.some(
+          (orderItem) =>
+            orderItem.variantId.toString() === item.variantId.toString(),
+        ),
+    );
+
+    await cart.save({ session });
+
     await session.commitTransaction();
 
-    return order;
+    const payment = await createPayment({
+      orderId: order._id,
+      totalPrice: order.totalPrice,
+      items: order.items,
+    });
+
+    return {
+      order,
+      snapToken: payment.token,
+    };
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
 
     throw error;
   } finally {
@@ -233,11 +255,11 @@ export const updateOrderStatus = async (orderId, status) => {
     [ORDER_STATUS.CANCELLED]: [],
   };
 
-  if (!allowedTransitions[order.status].includes(status)) {
+  if (!allowedTransitions[order.orderStatus].includes(status)) {
     throw new AppError("Invalid order status transition", 400);
   }
 
-  order.status = status;
+  order.orderStatus = status;
 
   switch (status) {
     case ORDER_STATUS.COMPLETED:
@@ -270,8 +292,8 @@ export const updatePaymentStatus = async (orderId, paymentStatus) => {
   }
 
   if (
-    order.status === ORDER_STATUS.COMPLETED ||
-    order.status === ORDER_STATUS.CANCELLED
+    order.orderStatus === ORDER_STATUS.COMPLETED ||
+    order.orderStatus === ORDER_STATUS.CANCELLED
   ) {
     throw new AppError(
       "Payment status cannot be updated for completed or cancelled orders",
@@ -315,7 +337,7 @@ export const cancelOrder = async (orderId, userId) => {
       throw new AppError("Order not found", 404);
     }
 
-    if (order.status !== ORDER_STATUS.PENDING) {
+    if (order.orderStatus !== ORDER_STATUS.PENDING) {
       throw new AppError("Only pending orders can be cancelled", 400);
     }
 
@@ -344,7 +366,7 @@ export const cancelOrder = async (orderId, userId) => {
       });
     }
 
-    order.status = ORDER_STATUS.CANCELLED;
+    order.orderStatus = ORDER_STATUS.CANCELLED;
     order.cancelledAt = new Date();
 
     await order.save({ session });
@@ -366,13 +388,13 @@ export const getOrderStatistics = async () => {
     Order.countDocuments(),
 
     Order.countDocuments({
-      status: ORDER_STATUS.PENDING,
+      orderStatus: ORDER_STATUS.PENDING,
     }),
 
     Order.aggregate([
       {
         $match: {
-          status: ORDER_STATUS.COMPLETED,
+          orderStatus: ORDER_STATUS.COMPLETED,
         },
       },
       {

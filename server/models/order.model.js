@@ -5,7 +5,6 @@ import variantAttributeSchema from "./variantAttribute.model.js";
 import {
   ORDER_STATUS,
   PAYMENT_STATUS,
-  PAYMENT_METHOD,
 } from "@ecommerce/shared/constants/index.js";
 
 const orderItemSchema = new mongoose.Schema(
@@ -107,7 +106,7 @@ const orderSchema = new mongoose.Schema(
       min: 0,
     },
 
-    status: {
+    orderStatus: {
       type: String,
       enum: Object.values(ORDER_STATUS),
       default: ORDER_STATUS.PENDING,
@@ -121,8 +120,12 @@ const orderSchema = new mongoose.Schema(
 
     paymentMethod: {
       type: String,
-      enum: Object.values(PAYMENT_METHOD),
-      required: true,
+      default: null,
+    },
+
+    paymentTransactionId: {
+      type: String,
+      default: null,
     },
 
     shippingAddress: {

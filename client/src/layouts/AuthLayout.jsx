@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
+import Logo from "../components/common/Logo";
 
 export default function AuthLayout() {
   const location = useLocation();
@@ -15,8 +16,7 @@ export default function AuthLayout() {
       <header className="flex items-center py-4 px-20 h-20 border-b">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2">
-            <img src="" alt="logo" />
-            <h1 className="text-xl font-bold">Commersale</h1>
+            <Logo className="w-auto h-20 bg-transparent" />
           </Link>
 
           <h2 className="text-2xl font-bold">{title}</h2>

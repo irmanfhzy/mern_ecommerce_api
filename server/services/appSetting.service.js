@@ -3,30 +3,40 @@ import processImage from "../utils/processingImage.js";
 import uploadImage from "../utils/uploadingImage.js";
 import cloudinary from "../config/cloudinary.js";
 import IMAGE_CONFIG from "../constants/image.constant.js";
-import sanitizeAbout from "../utils/sanitizeHtml.js";
+import sanitizeHtmlValue from "../utils/sanitizeHtml.js";
 
 export const getAppSetting = async () => {
   return await AppSetting.findOne().lean();
 };
 
 export const saveAppSetting = async (body, files) => {
-  const { appName, about, address, contact, removeLogo, removeFavicon } = body;
+  const {
+    appName,
+    appDescription,
+    about,
+    address,
+    contact,
+    socialMedia,
+    removeLogo,
+    removeFavicon,
+  } = body;
 
   const updatedData = {
     appName,
-    about: sanitizeAbout(about),
+    appDescription,
+    about: sanitizeHtmlValue(about),
     address,
     contact,
+    socialMedia,
   };
 
   const oldSetting = await AppSetting.findOne().lean();
 
   try {
-    // Upload logo baru
     if (files?.logo?.[0]) {
       const processedLogo = await processImage(
         files.logo[0].buffer,
-        IMAGE_CONFIG.LOGO,
+        IMAGE_CONFIG.HEADER_LOGO,
       );
 
       const uploadedLogo = await uploadImage(processedLogo, "app/logo");
@@ -39,7 +49,6 @@ export const saveAppSetting = async (body, files) => {
       updatedData.logo = null;
     }
 
-    // Upload favicon baru
     if (files?.favicon?.[0]) {
       const processedFavicon = await processImage(
         files.favicon[0].buffer,

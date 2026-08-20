@@ -5,6 +5,10 @@ export default function AppName({ className = "" }) {
   const { appSetting } = useContext(AppSettingContext);
 
   return (
-    <span className={className}>{appSetting?.appName || "CommerSale"}</span>
+    <>
+      {appSetting?.appName && (
+        <span className={className}>{appSetting.appName}</span>
+      )}
+    </>
   );
 }

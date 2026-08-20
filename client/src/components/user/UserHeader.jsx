@@ -27,15 +27,14 @@ export default function UserHeader() {
   const { user } = useContext(AuthContext);
 
   return (
-    <Header className="grid grid-cols-[1fr_2fr_1fr] items-center h-full gap-6 sticky top-0 z-50 p-4 text-white bg-amber-600">
+    <Header className="sticky h-25 top-0 z-50 grid grid-cols-[auto_2fr_auto] items-center gap-6 bg-amber-600 px-6 py-1 text-white">
       <Header.Left className="flex items-center gap-4">
         <Link
           to={PATHS.PUBLIC.HOME}
           onClick={() => setKeyword("")}
-          className="flex items-center gap-2"
+          className="flex items-center gap-4"
         >
-          <Logo className="w-10 h-10" />
-          <AppName />
+          <Logo className="w-auto h-20 bg-transparent" />
         </Link>
 
         <NavMenu

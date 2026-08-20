@@ -13,8 +13,10 @@ import formatPrice from "../../utils/priceFormatter";
 
 import { createOrder } from "../../services/order.service";
 import { getProfile } from "../../services/user.service";
+import { getVariantById } from "../../services/variant.service";
 
-import { PAYMENT_METHOD } from "@ecommerce/shared/constants";
+import { openMidtransSnap } from "../../utils/midtrans";
+
 import Modal from "../../components/common/Modal";
 
 export default function Checkout() {
@@ -22,22 +24,37 @@ export default function Checkout() {
 
   const location = useLocation();
 
-  const { cart } = useContext(CartContext);
+  const { cart, fetchCart } = useContext(CartContext);
   const { openDialog, closeDialog } = useContext(ConfirmationDialogContext);
 
+  const [buyNowItem, setBuyNowItem] = useState(null);
+  const [buyNowVariant, setBuyNowVariant] = useState(null);
   const [selectedVariantIds, setSelectedVariantIds] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingPage, setLoadingPage] = useState(true);
+  const [loadingButton, setLoadingButton] = useState(false);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [pendingAddressId, setPendingAddressId] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHOD.COD);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
+  const searchParams = new URLSearchParams(location.search);
+  const isBuyNow = searchParams.get("mode") === "buy-now";
+
   const checkoutItems = useMemo(() => {
+    if (buyNowItem && buyNowVariant) {
+      return [
+        {
+          variantId: buyNowVariant,
+          quantity: buyNowItem.quantity,
+          priceAtAdded: buyNowVariant.sellingPrice,
+        },
+      ];
+    }
+
     return cart.items.filter((item) =>
       selectedVariantIds.includes(item.variantId._id),
     );
-  }, [cart.items, selectedVariantIds]);
+  }, [buyNowItem, buyNowVariant, cart.items, selectedVariantIds]);
 
   const orderItems = useMemo(() => {
     return checkoutItems.map((item) => ({
@@ -45,22 +62,60 @@ export default function Checkout() {
       productName: item.variantId.productId.name,
       variantImage: item.variantId.images?.[0]?.url,
       attributes: item.variantId.attributes,
-      price: item.priceAtAdded,
+      sellingPrice: item.priceAtAdded,
       quantity: item.quantity,
     }));
   }, [checkoutItems]);
 
   useEffect(() => {
-    const checkoutItems = JSON.parse(
-      localStorage.getItem("checkoutItems") || "[]",
-    );
+    try {
+      setLoadingPage(true);
+      if (isBuyNow) {
+        const item = JSON.parse(localStorage.getItem("buyNowItem") || "null");
 
-    if (!checkoutItems.length) {
-      navigate("/cart", { replace: true });
-      return;
+        if (!item) {
+          navigate("/cart", { replace: true });
+          return;
+        }
+
+        setBuyNowItem(item);
+        return;
+      }
+
+      const items = JSON.parse(localStorage.getItem("checkoutItems") || "[]");
+
+      if (!items.length) {
+        navigate("/cart", { replace: true });
+        return;
+      }
+
+      setSelectedVariantIds(items);
+    } catch (error) {
+      alert(error.response?.data?.message || error.message);
+    } finally {
+      setLoadingPage(false);
     }
-    setSelectedVariantIds(checkoutItems);
-  }, [navigate]);
+  }, [isBuyNow, navigate]);
+
+  useEffect(() => {
+    if (!buyNowItem) return;
+
+    const fetchVariant = async () => {
+      try {
+        setLoadingPage(true);
+        const res = await getVariantById(buyNowItem.variantId);
+
+        setBuyNowVariant(res.data.data);
+      } catch (error) {
+        alert(error.response?.data?.message || error.message);
+        navigate("/product");
+      } finally {
+        setLoadingPage(false);
+      }
+    };
+
+    fetchVariant();
+  }, [buyNowItem, navigate]);
 
   const selectedAddress = useMemo(() => {
     return addresses.find((address) => address._id === selectedAddressId);
@@ -69,7 +124,7 @@ export default function Checkout() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        setLoading(true);
+        setLoadingPage(true);
 
         const res = await getProfile();
 
@@ -85,7 +140,7 @@ export default function Checkout() {
       } catch (error) {
         alert(error.response?.data?.message || error.message);
       } finally {
-        setLoading(false);
+        setLoadingPage(false);
       }
     };
 
@@ -109,10 +164,6 @@ export default function Checkout() {
     );
   }, [checkoutItems]);
 
-  const handleChangePayment = (e) => {
-    setPaymentMethod(e.target.value);
-  };
-
   const handleOpenAddressModal = () => {
     setPendingAddressId(selectedAddressId);
     setIsAddressModalOpen(true);
@@ -133,28 +184,52 @@ export default function Checkout() {
 
   const handlePlaceOrder = async () => {
     try {
-      setLoading(true);
+      setLoadingButton(true);
 
       const payload = {
         items: checkoutItems.map((item) => ({
           variantId: item.variantId._id,
           quantity: item.quantity,
         })),
-
         totalPrice: summary.totalPrice,
-        paymentMethod,
         shippingAddress: selectedAddress,
       };
 
       const res = await createOrder(payload);
 
-      localStorage.removeItem("checkoutItems");
+      const { snapToken } = res.data.data;
 
-      navigate(`/my-orders/${res.data.data._id}`);
+      openMidtransSnap(snapToken, {
+        onSuccess: () => {
+          fetchCart();
+
+          localStorage.removeItem("checkoutItems");
+          localStorage.removeItem("buyNowItem");
+
+          navigate(`/my-orders/${res.data.data.order._id}`);
+        },
+
+        onPending: () => {
+          fetchCart();
+
+          localStorage.removeItem("checkoutItems");
+          localStorage.removeItem("buyNowItem");
+
+          navigate(`/my-orders/${res.data.data.order._id}`);
+        },
+
+        onError: (result) => {
+          console.log("Payment error", result);
+        },
+
+        onClose: () => {
+          console.log("Payment popup closed");
+        },
+      });
     } catch (error) {
       alert(error.response?.data?.message || error.message);
     } finally {
-      setLoading(false);
+      setLoadingButton(false);
       closeDialog();
     }
   };
@@ -167,7 +242,7 @@ export default function Checkout() {
     );
   }
 
-  if (loading) {
+  if (loadingPage) {
     return <Loading fullScreen={true} />;
   }
 
@@ -199,30 +274,15 @@ export default function Checkout() {
             ) : (
               <>
                 <div>You do not have any addresses</div>
-                <Button onClick={handleAddAddress} className="self-start">
+                <Button
+                  variant="primary"
+                  onClick={handleAddAddress}
+                  className="self-start"
+                >
                   Add Address
                 </Button>
               </>
             )}
-          </section>
-
-          <section className="rounded-2xl border bg-white p-6">
-            <h2 className="mb-4 text-lg font-semibold">Payment Method</h2>
-
-            <select
-              name="payment_method"
-              value={paymentMethod}
-              onChange={handleChangePayment}
-              className="w-full rounded-lg border p-3 cursor-pointer"
-            >
-              <option value={PAYMENT_METHOD.COD}>Cash On Delivery</option>
-
-              <option value={PAYMENT_METHOD.BANK_TRANSFER}>
-                Bank Transfer
-              </option>
-
-              <option value={PAYMENT_METHOD.E_WALLET}>E-Wallet</option>
-            </select>
           </section>
 
           <section className="rounded-2xl border bg-white p-6">
@@ -256,8 +316,8 @@ export default function Checkout() {
           </div>
 
           <Button
+            variant="primary"
             className="mt-8 w-full"
-            loading={loading}
             onClick={() =>
               openDialog({
                 title: "Place Order",
@@ -265,7 +325,7 @@ export default function Checkout() {
                 confirmVariant: "primary",
                 cancelVariant: "ghost",
                 onConfirm: () => handlePlaceOrder(),
-                loading,
+                loading: loadingButton,
               })
             }
             disabled={!selectedAddressId}
@@ -290,7 +350,11 @@ export default function Checkout() {
           />
         ))}
         <div className="flex justify-between mt-3">
-          <Button onClick={handleAddAddress} className="self-start">
+          <Button
+            variant="primary"
+            onClick={handleAddAddress}
+            className="self-start"
+          >
             Add Address
           </Button>
           <div>

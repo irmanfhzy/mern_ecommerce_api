@@ -101,6 +101,7 @@ export const createVariants = async ({
 
   const createdVariants = await Variant.create(documents, {
     session,
+    ordered: true,
   });
 
   for (const variant of createdVariants) {

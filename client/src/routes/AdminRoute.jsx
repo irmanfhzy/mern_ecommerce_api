@@ -7,6 +7,7 @@ import ProductsList from "../pages/admin/ProductsList";
 import AddProduct from "../pages/admin/AddProduct";
 import ProductDetail from "../pages/admin/ProductDetail";
 import EditProductInfo from "../pages/admin/EditProductInfo";
+import AddVariant from "../pages/admin/AddVariant";
 import EditVariant from "../pages/admin/EditVariant";
 import RestockVariant from "../pages/admin/RestockVariant";
 import OrdersList from "../pages/admin/OrdersList";
@@ -40,6 +41,10 @@ const adminRoute = [
           {
             path: "products/:productId/edit",
             element: <EditProductInfo />,
+          },
+          {
+            path: "products/:productId/variants/create",
+            element: <AddVariant />,
           },
           {
             path: "products/:productId/variants/:variantId/edit",

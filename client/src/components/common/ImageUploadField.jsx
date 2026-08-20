@@ -9,6 +9,7 @@ export default function ImageUploadField({
   disabled = false,
   onChange,
   onRemove,
+  imageClassName,
 }) {
   const handleChange = (e) => {
     let files = Array.from(e.target.files);
@@ -52,7 +53,7 @@ export default function ImageUploadField({
                   image instanceof File ? URL.createObjectURL(image) : image.url
                 }
                 alt={`Preview ${index + 1}`}
-                className="h-24 w-24 rounded border object-cover"
+                className={imageClassName}
               />
 
               <Button

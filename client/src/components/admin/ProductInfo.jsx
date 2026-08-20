@@ -32,15 +32,35 @@ export default function ProductInfo({ product, onEdit }) {
             label="Status"
             value={product.isActive ? "Active" : "Inactive"}
           />
-
-          <div>
-            <p className="font-semibold">Description</p>
-
-            <p className="mt-1 whitespace-pre-line text-gray-600">
-              {product.description}
-            </p>
-          </div>
         </div>
+      </div>
+      <div className="mt-16">
+        <h2 className="text-2xl font-semibold mb-4">Description</h2>
+
+        <article
+          className="
+        prose
+        mt-2
+        max-w-none
+        prose-headings:font-bold
+        prose-headings:text-gray-900
+        prose-p:text-gray-700
+        prose-p:leading-7
+        prose-a:text-blue-600
+        prose-a:underline
+        prose-a:underline-offset-2
+        prose-strong:text-gray-900
+        prose-blockquote:border-l-4
+        prose-blockquote:border-gray-300
+        prose-blockquote:text-gray-600
+        prose-ul:text-gray-700
+        prose-ol:text-gray-700
+        prose-li:my-1
+      "
+          dangerouslySetInnerHTML={{
+            __html: product.description ?? "",
+          }}
+        />
       </div>
     </div>
   );

@@ -29,6 +29,11 @@ const appSettingSchema = new mongoose.Schema(
       trim: true,
     },
 
+    appDescription: {
+      type: String,
+      trim: true,
+    },
+
     about: {
       type: String,
       required: true,
@@ -38,6 +43,8 @@ const appSettingSchema = new mongoose.Schema(
     address: addressSchema,
 
     contact: [contactSchema],
+
+    socialMedia: [contactSchema],
 
     logo: imageSchema,
 

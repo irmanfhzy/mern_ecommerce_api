@@ -17,6 +17,7 @@ export default function Cart() {
     useContext(CartContext);
 
   const [selectedItems, setSelectedItems] = useState([]);
+  const [loadingButton, setLoadingButton] = useState(false);
 
   const toggleItem = (variantId) => {
     setSelectedItems((prev) =>
@@ -105,9 +106,16 @@ export default function Cart() {
   };
 
   const handleCheckout = () => {
-    localStorage.setItem("checkoutItems", JSON.stringify(selectedItems));
+    try {
+      setLoadingButton(true);
+      localStorage.setItem("checkoutItems", JSON.stringify(selectedItems));
 
-    navigate("/checkout");
+      navigate("/checkout");
+    } catch (error) {
+      alert(error.response?.data?.message || error.message);
+    } finally {
+      setLoadingButton(false);
+    }
   };
 
   return (
@@ -169,6 +177,7 @@ export default function Cart() {
             <Button
               onClick={handleCheckout}
               disabled={selectedItems.length === 0}
+              loading={loadingButton}
               variant="primary"
               size="lg"
             >

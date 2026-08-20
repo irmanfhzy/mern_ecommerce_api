@@ -50,7 +50,12 @@ export default function ProductForm({
           + Add Variant
         </Button>
 
-        <Button type="button" loading={loading} onClick={onSubmit}>
+        <Button
+          variant="primary"
+          type="button"
+          loading={loading}
+          onClick={onSubmit}
+        >
           Save Product
         </Button>
       </div>

@@ -22,7 +22,6 @@ import { ROLE } from "@ecommerce/shared/constants/index.js";
 
 import requestBodySchemas from "../validations/requestBodySchemas.js";
 import requestFilesSchemas from "../validations/requestFilesSchemas.js";
-import rules from "../validations/normalizerRules.js";
 
 const router = express.Router();
 

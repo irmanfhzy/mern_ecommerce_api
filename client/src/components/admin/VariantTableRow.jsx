@@ -2,6 +2,7 @@ import Button from "../common/Button";
 
 import formatPrice from "../../utils/priceFormatter";
 import { getImageUrl } from "../../utils/imageHelpers";
+import { capitalize } from "../../utils/textFormatter";
 
 export default function VariantTableRow({
   variant,
@@ -12,7 +13,7 @@ export default function VariantTableRow({
   cellClassName = "",
 }) {
   const attributes = variant.attributes
-    .map((attr) => `${attr.key}: ${attr.value}`)
+    .map((attr) => `${capitalize(attr.key)}: ${capitalize(attr.value)}`)
     .join(", ");
 
   return (

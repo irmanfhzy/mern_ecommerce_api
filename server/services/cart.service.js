@@ -36,7 +36,7 @@ export const addToCart = async (userId, variantId, quantity) => {
   }
 
   const variant = await Variant.findById(variantId)
-    .select("_id price stock")
+    .select("_id sellingPrice stock")
     .lean();
 
   checker.checkDocument(variant, "Variant not found");
@@ -45,7 +45,7 @@ export const addToCart = async (userId, variantId, quantity) => {
     throw new AppError("Stock not enough", 400);
   }
 
-  const priceAtAdded = variant.price;
+  const priceAtAdded = variant.sellingPrice;
 
   const cart = await Cart.findOne({ userId });
 
@@ -61,7 +61,9 @@ export const addToCart = async (userId, variantId, quantity) => {
       ],
     });
 
-    return await newCart.populate(cartPopulate);
+    const populatedCart = await newCart.populate(cartPopulate);
+
+    return getAvailableCart(populatedCart);
   }
 
   const item = cart.items.find((i) => i.variantId.equals(variantId));
@@ -78,7 +80,9 @@ export const addToCart = async (userId, variantId, quantity) => {
 
   await cart.save();
 
-  return await cart.populate(cartPopulate);
+  const populatedCart = await cart.populate(cartPopulate);
+
+  return getAvailableCart(populatedCart);
 };
 
 export const changeVariant = async (userId, oldVariantId, newVariantId) => {

@@ -15,9 +15,11 @@ export const PAYMENT_STATUS = {
 };
 
 export const PAYMENT_METHOD = {
-  COD: "cash_on_delivery",
-  BANK_TRANSFER: "bank_transfer",
-  E_WALLET: "e_wallet",
+  qris: "QRIS",
+  gopay: "GoPay",
+  bank_transfer: "Bank Transfer",
+  credit_card: "Credit Card",
+  shopeepay: "ShopeePay",
 };
 
 export const INVENTORY_TYPE = {

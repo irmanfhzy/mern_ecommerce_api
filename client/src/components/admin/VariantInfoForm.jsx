@@ -68,6 +68,7 @@ export default function VariantInfoForm({
           maxFiles={5}
           onChange={onImageChange}
           onRemove={onRemoveImage}
+          imageClassName="h-24 w-24 rounded border object-cover"
         />
       </div>
     </>

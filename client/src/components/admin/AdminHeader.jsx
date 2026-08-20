@@ -21,19 +21,18 @@ export default function AdminHeader({ onToggleSidebar }) {
   const location = useLocation();
 
   return (
-    <Header className="grid grid-cols-[1fr_2fr_1fr] items-center gap-6 p-4 text-white bg-blue-600 shrink-0">
+    <Header className="h-25 grid grid-cols-[auto_1fr_auto] items-center gap-6 px-4 py-1 text-white bg-blue-600 shrink-0">
       <Header.Left className="flex items-center gap-4">
         <Button
           variant="transparent"
           onClick={onToggleSidebar}
           aria-label="Toggle sidebar"
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-8 h-8" />
         </Button>
 
         <Link to={PATHS.ADMIN.DASHBOARD} className="flex items-center gap-2">
-          <Logo className="w-10 h-10" />
-          <AppName />
+          <Logo className="w-auto h-20 bg-transparent" />
         </Link>
       </Header.Left>
 

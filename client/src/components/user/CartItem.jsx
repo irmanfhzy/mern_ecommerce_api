@@ -2,6 +2,7 @@ import QuantitySelector from "../common/QuantitySelector";
 import Badge from "./Badge";
 import Button from "../common/Button";
 import { getImageUrl } from "../../utils/imageHelpers";
+import { capitalize } from "../../utils/textFormatter";
 
 export default function CartItem({
   item,
@@ -15,6 +16,9 @@ export default function CartItem({
 }) {
   const product = item.variantId.productId;
   const variant = item.variantId;
+  const attributes = variant.attributes
+    .map((attr) => `${capitalize(attr.key)}: ${capitalize(attr.value)}`)
+    .join(", ");
 
   return (
     <div className="flex items-start gap-4 py-4 border-b">
@@ -42,6 +46,7 @@ export default function CartItem({
 
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-gray-500">Variant:</span>
+          <span>{attributes}</span>
 
           <span className="font-medium text-gray-700">{variant.name}</span>
 
