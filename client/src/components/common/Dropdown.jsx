@@ -33,7 +33,11 @@ export default function Dropdown({
 
   return (
     <div ref={dropdownRef} className={`relative inline-block ${className}`}>
-      <button type="button" onClick={handleToggle} className="cursor-pointer">
+      <button
+        type="button"
+        onClick={handleToggle}
+        className="flex cursor-pointer"
+      >
         {trigger}
       </button>
 
