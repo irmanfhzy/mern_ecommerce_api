@@ -23,5 +23,8 @@
     "client",
     "server",
     "shared"
-  ]
+  ],
+  "overrides": {
+    "htmlparser2": "10.1.0"
+  }
 }
