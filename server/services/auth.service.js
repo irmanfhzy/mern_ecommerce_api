@@ -12,7 +12,12 @@ import AppError from "../utils/AppError.js";
 export const register = async (body) => {
   const { name, email, password, confirmPassword } = body;
   checker.checkEmail(email);
-  checker.checkPassword({ type: "register", password, confirmPassword });
+  checker.checkPassword({
+    type: "register",
+    type: "register",
+    newPassword: password,
+    confirmNewPassword: confirmPassword,
+  });
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
