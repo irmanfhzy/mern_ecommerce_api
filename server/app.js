@@ -33,16 +33,16 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/variants", variantRoutes);
-app.use("/api/carts", cartRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/inventory-histories", InventoryHistoryRoutes);
-app.use("/api/app-setting", appSettingRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/payments", paymentRoutes);
+app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
+app.use("/products", productRoutes);
+app.use("/variants", variantRoutes);
+app.use("/carts", cartRoutes);
+app.use("/orders", orderRoutes);
+app.use("/inventory-histories", InventoryHistoryRoutes);
+app.use("/app-setting", appSettingRoutes);
+app.use("/admin", adminRoutes);
+app.use("/payments", paymentRoutes);
 
 app.use(errorHandler);
 
