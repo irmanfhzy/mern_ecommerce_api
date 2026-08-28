@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 
+import connectDB from "./config/database.js";
+
 import authRoutes from "./routes/auth.route.js";
 import userRoutes from "./routes/user.route.js";
 import productRoutes from "./routes/product.route.js";
@@ -31,6 +33,19 @@ app.get("/", (req, res) => {
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
+});
+
+// Pastikan koneksi DB siap SEBELUM request menyentuh route apapun
+// yang butuh database. Ini mencegah "buffering timed out" di serverless,
+// karena tiap request akan reconnect kalau koneksi sebelumnya sudah stale.
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("DB connection error on request:", error.message);
+    res.status(503).json({ message: "Database connection failed" });
+  }
 });
 
 app.use("/auth", authRoutes);
