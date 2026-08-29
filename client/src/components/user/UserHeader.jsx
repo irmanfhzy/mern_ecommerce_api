@@ -42,7 +42,11 @@ export default function UserHeader() {
 
   return (
     <Header
-      className={`sticky top-0 z-50 grid h-25 items-center gap-6 bg-amber-600 px-6 py-1 text-white ${isHome ? "grid-cols-[1fr_auto] md:grid-cols-[auto_1fr_auto]" : "grid-cols-[auto_1fr_auto]"}`}
+      className={`sticky top-0 z-50 grid h-25 items-center gap-2 bg-amber-600 px-3 py-1 text-white sm:gap-4 sm:px-4 md:gap-6 md:px-6 ${
+        isHome
+          ? "grid-cols-[1fr_auto] md:grid-cols-[auto_1fr_auto]"
+          : "grid-cols-[auto_1fr_auto]"
+      }`}
     >
       {/* LEFT */}
       <Header.Left
