@@ -17,19 +17,19 @@ export default function SearchBar({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`flex h-10 w-full items-center rounded-lg border bg-white text-black ${className}`}
+      className={`flex h-10 w-full min-w-0 items-center overflow-hidden rounded-lg border bg-white text-black ${className}`}
     >
       <input
         type="text"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 bg-transparent px-4 outline-none"
+        className="min-w-0 flex-1 bg-transparent px-4 outline-none"
       />
 
       <button
         type="submit"
-        className="flex h-full items-center justify-center px-3"
+        className="flex h-full shrink-0 items-center justify-center px-3"
       >
         <Search className="h-5 w-5" />
       </button>
