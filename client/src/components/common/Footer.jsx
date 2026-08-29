@@ -1,5 +1,8 @@
 import { useContext } from "react";
+import { Link } from "react-router-dom";
 import { AppSettingContext } from "../../contexts/AppSettingContext";
+
+import PATHS from "../../constants/paths";
 
 export default function Footer() {
   const { appSetting } = useContext(AppSettingContext);
@@ -18,17 +21,24 @@ export default function Footer() {
             </h2>
 
             {appSetting?.appDescription && (
-              <p className="mt-3 max-w-xs text-sm leading-6 text-gray-400">
+              <p className="mt-3 max-w-xs text-sm leading-6">
                 {appSetting.appDescription}
               </p>
             )}
+
+            <Link
+              to={PATHS.PUBLIC.ABOUT}
+              className="mt-3 inline-block text-sm underline underline-offset-4 transition hover:text-white md:hidden"
+            >
+              About Us
+            </Link>
           </div>
 
           {address && (
             <div>
               <h3 className="font-semibold text-white">Address</h3>
 
-              <div className="mt-3 text-sm leading-6 text-gray-400">
+              <div className="mt-3 text-sm leading-6">
                 <p>{address.street}</p>
                 <p>
                   {address.village}, {address.district}
@@ -59,12 +69,12 @@ export default function Footer() {
                             ? "noopener noreferrer"
                             : undefined
                         }
-                        className="text-gray-400 transition hover:text-white"
+                        className="transition hover:text-white"
                       >
                         {contact.label}: {contact.value}
                       </a>
                     ) : (
-                      <p className="text-gray-400">
+                      <p>
                         {contact.label}: {contact.value}
                       </p>
                     )}
@@ -85,7 +95,7 @@ export default function Footer() {
                     href={social.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block text-gray-400 transition hover:text-white"
+                    className="block transition hover:text-white"
                   >
                     {social.label}: {social.value}
                   </a>
@@ -95,8 +105,9 @@ export default function Footer() {
           )}
         </div>
 
-        <div className="mt-10 border-t border-gray-700 pt-6 text-center text-sm text-gray-400">
-          &copy; 2026 {appSetting?.appName}. All rights reserved.
+        <div className="mt-10 border-t border-gray-700 pt-6 text-center text-sm">
+          &copy; {new Date().getFullYear()} {appSetting?.appName}. All rights
+          reserved.
         </div>
       </div>
     </footer>

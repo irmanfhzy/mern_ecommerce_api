@@ -4,6 +4,7 @@ const PATHS = {
     ABOUT: "/about",
     LOGIN: "/login",
     REGISTER: "/register",
+    PRODUCT_DETAIL: "/product/:productId/:slug",
   },
 
   USER: {

@@ -1,9 +1,9 @@
 import { useContext } from "react";
-import { Link, useLocation } from "react-router-dom";
+
+import { Link, useLocation, matchPath } from "react-router-dom";
 
 import Header from "../common/Header";
 import Logo from "../common/Logo";
-import AppName from "../common/AppName";
 import MenuItems from "../common/MenuItems";
 import SearchBar from "../common/SearchBar";
 import CartButton from "./CartButton";
@@ -16,6 +16,7 @@ import Separator from "../common/Separator";
 import PATHS from "../../constants/paths";
 import NAV_ITEMS from "../../constants/navItems";
 import PAGE_TITLES from "../../constants/pageTitles";
+
 import { ROLE } from "@ecommerce/shared/constants/index";
 
 import { SearchContext } from "../../contexts/SearchContext";
@@ -23,40 +24,75 @@ import { AuthContext } from "../../contexts/AuthContext";
 
 export default function UserHeader() {
   const location = useLocation();
+
   const { setKeyword } = useContext(SearchContext);
   const { user } = useContext(AuthContext);
 
+  const isHome = location.pathname === PATHS.PUBLIC.HOME;
+  const isProductDetail = matchPath(
+    PATHS.PUBLIC.PRODUCT_DETAIL,
+    location.pathname,
+  );
+
+  const homeItem = NAV_ITEMS.PUBLIC.find(
+    (item) => item.path === PATHS.PUBLIC.HOME,
+  );
+
+  const HomeIcon = homeItem?.icon;
+
   return (
-    <Header className="sticky h-25 top-0 z-50 grid grid-cols-[auto_2fr_auto] items-center gap-6 bg-amber-600 px-6 py-1 text-white">
-      <Header.Left className="flex items-center gap-4">
+    <Header
+      className={`sticky top-0 z-50 grid h-25 items-center gap-6 bg-amber-600 px-6 py-1 text-white ${isHome ? "grid-cols-[1fr_auto] md:grid-cols-[auto_1fr_auto]" : "grid-cols-[auto_1fr_auto]"}`}
+    >
+      {/* LEFT */}
+      <Header.Left
+        className={`items-center ${isHome ? "hidden md:flex" : "flex"}`}
+      >
+        {/* Desktop */}
+        <div className="hidden items-center gap-4 md:flex">
+          <Link
+            to={PATHS.PUBLIC.HOME}
+            onClick={() => setKeyword("")}
+            className="flex items-center gap-4"
+          >
+            <Logo className="h-20 w-auto bg-transparent" />
+          </Link>
+
+          <NavMenu
+            menuItems={NAV_ITEMS.PUBLIC}
+            className="flex items-center gap-4"
+          />
+        </div>
+
+        {/* Mobile + Tablet */}
         <Link
           to={PATHS.PUBLIC.HOME}
           onClick={() => setKeyword("")}
-          className="flex items-center gap-4"
+          aria-label="Home"
+          className="flex items-center justify-center md:hidden"
         >
-          <Logo className="w-auto h-20 bg-transparent" />
+          {HomeIcon && <HomeIcon size={22} />}
         </Link>
-
-        <NavMenu
-          menuItems={NAV_ITEMS.PUBLIC}
-          className="flex items-center gap-4"
-        />
       </Header.Left>
 
-      <Header.Center className="flex justify-center h-8">
-        {location.pathname === PATHS.PUBLIC.HOME ? (
+      {/* CENTER */}
+      <Header.Center className="flex h-8 justify-center">
+        {isHome ? (
           <SearchBar
             onSearch={(keyword) => setKeyword(keyword)}
             placeholder="Search products..."
           />
         ) : (
           <h1 className="text-xl font-semibold">
-            {PAGE_TITLES[location.pathname] ?? ""}
+            {isProductDetail
+              ? "Product Detail"
+              : (PAGE_TITLES[location.pathname] ?? "")}
           </h1>
         )}
       </Header.Center>
 
-      <Header.Right className="flex items-center justify-end gap-6">
+      {/* RIGHT */}
+      <Header.Right className="flex items-center justify-end gap-4 md:gap-6">
         <CartButton />
 
         {user ? (
@@ -66,7 +102,7 @@ export default function UserHeader() {
           >
             <MenuItems
               menuItems={NAV_ITEMS.USER_PROFILE}
-              className="py-1 px-3 hover:bg-gray-300"
+              className="px-3 py-1 hover:bg-gray-300"
             />
 
             <Separator />
@@ -78,17 +114,31 @@ export default function UserHeader() {
                     (item) => item.path === PATHS.ADMIN.DASHBOARD,
                   ),
                 ]}
-                className="py-1 px-3 hover:bg-gray-300"
+                className="px-3 py-1 hover:bg-gray-300"
               />
             )}
 
-            <Logout icon={true} className="py-1 px-3 hover:bg-gray-300" />
+            <Logout icon={true} className="px-3 py-1 hover:bg-gray-300" />
           </Dropdown>
         ) : (
           <>
-            <Link to={PATHS.PUBLIC.LOGIN}>Login</Link>
-            <span>|</span>
-            <Link to={PATHS.PUBLIC.REGISTER}>Register</Link>
+            {/* Mobile + Tablet */}
+            <Link
+              to={PATHS.PUBLIC.LOGIN}
+              className="flex items-center justify-center md:hidden"
+              aria-label="Login"
+            >
+              <ProfilePicture alt="Login" />
+            </Link>
+
+            {/* Desktop */}
+            <div className="hidden items-center gap-2 md:flex">
+              <Link to={PATHS.PUBLIC.LOGIN}>Login</Link>
+
+              <span>|</span>
+
+              <Link to={PATHS.PUBLIC.REGISTER}>Register</Link>
+            </div>
           </>
         )}
       </Header.Right>

@@ -4,6 +4,9 @@ const PAGE_TITLES = {
   // Public
   [PATHS.PUBLIC.HOME]: "Home",
   [PATHS.PUBLIC.ABOUT]: "About",
+  [PATHS.PUBLIC.PRODUCT_DETAIL]: "Product Detail",
+
+  // User
   [PATHS.USER.CART]: "Shopping Cart",
   [PATHS.USER.PROFILE]: "Profile",
   [PATHS.USER.MY_ORDERS]: "My Orders",

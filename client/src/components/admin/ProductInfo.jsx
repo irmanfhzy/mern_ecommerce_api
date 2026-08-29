@@ -18,7 +18,7 @@ export default function ProductInfo({ product, onEdit }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-[400px_1fr] gap-8">
+      <div className="grid gap-8 lg:grid-cols-[400px_minmax(0,1fr)]">
         <ProductGallery
           images={normalizeImages(product.images)}
           imageName={product.name}

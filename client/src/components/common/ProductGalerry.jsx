@@ -14,14 +14,26 @@ export default function ProductGallery({
   }, [images, initialImage]);
 
   return (
-    <div className="flex gap-4">
-      <div className="flex w-20 flex-col gap-3">
+    <div className="flex flex-col gap-4">
+      {/* Main Image */}
+      <div className="w-full overflow-hidden rounded-2xl border bg-white">
+        {selectedImage && (
+          <img
+            src={selectedImage}
+            alt={imageName}
+            className="block aspect-square w-full object-cover"
+          />
+        )}
+      </div>
+
+      {/* Image Selector */}
+      <div className="flex w-full flex-wrap gap-3">
         {images.map((img, i) => (
           <button
             key={i}
             type="button"
             onClick={() => setSelectedImage(img)}
-            className={`h-20 w-20 overflow-hidden rounded-lg border-2 ${
+            className={`h-20 w-20 shrink-0 overflow-hidden rounded-lg border-2 ${
               selectedImage === img ? "border-blue-500" : "border-gray-200"
             }`}
           >
@@ -32,16 +44,6 @@ export default function ProductGallery({
             />
           </button>
         ))}
-      </div>
-
-      <div className="flex-1 overflow-hidden rounded-2xl border bg-white">
-        {selectedImage && (
-          <img
-            src={selectedImage}
-            className="aspect-square w-full object-cover"
-            alt={imageName}
-          />
-        )}
       </div>
     </div>
   );
