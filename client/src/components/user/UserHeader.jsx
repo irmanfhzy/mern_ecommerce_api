@@ -42,10 +42,10 @@ export default function UserHeader() {
 
   return (
     <Header
-      className={`sticky top-0 z-50 grid h-25 items-center gap-2 bg-amber-600 px-3 py-1 text-white sm:gap-4 sm:px-4 md:gap-6 md:px-6 ${
+      className={`sticky top-0 z-50 grid h-25 items-center gap-3 bg-amber-600 px-3 py-1 text-white md:gap-6 md:px-6 ${
         isHome
-          ? "grid-cols-[1fr_auto] md:grid-cols-[auto_1fr_auto]"
-          : "grid-cols-[auto_1fr_auto]"
+          ? "grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[auto_minmax(0,1fr)_auto]"
+          : "grid-cols-[auto_minmax(0,1fr)_auto]"
       }`}
     >
       {/* LEFT */}
@@ -96,7 +96,7 @@ export default function UserHeader() {
       </Header.Center>
 
       {/* RIGHT */}
-      <Header.Right className="flex items-center justify-end gap-4 md:gap-6">
+      <Header.Right className="flex min-w-max items-center justify-end gap-3 md:gap-6">
         <CartButton />
 
         {user ? (
