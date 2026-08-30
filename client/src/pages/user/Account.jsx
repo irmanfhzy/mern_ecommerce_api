@@ -33,7 +33,7 @@ export default function Account() {
     {
       label: "Password",
       value: "••••••••••••",
-      button: "Change Password",
+      button: "Change",
       path: "password/change",
     },
   ];
@@ -60,7 +60,7 @@ export default function Account() {
               <p className="mt-1 text-lg font-medium">{item.value}</p>
             </div>
 
-            <Button variant="outline" onClick={() => navigate(item.path)}>
+            <Button variant="primary" onClick={() => navigate(item.path)}>
               {item.button}
             </Button>
           </div>
