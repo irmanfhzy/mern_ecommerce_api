@@ -165,7 +165,7 @@ export default function Cart() {
             <span className="font-medium">Select All</span>
           </label>
 
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="text-right">
               <p className="text-sm text-gray-500">Total</p>
 
