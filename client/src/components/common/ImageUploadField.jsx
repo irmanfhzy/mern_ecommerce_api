@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import Button from "../common/Button";
 
 export default function ImageUploadField({
@@ -11,6 +12,8 @@ export default function ImageUploadField({
   onRemove,
   imageClassName,
 }) {
+  const inputRef = useRef(null);
+
   const handleChange = (e) => {
     let files = Array.from(e.target.files);
 
@@ -27,8 +30,15 @@ export default function ImageUploadField({
       onChange(files);
     }
 
-    // supaya file yang sama bisa dipilih lagi
     e.target.value = "";
+  };
+
+  const isDisabled = disabled || (maxFiles && images.length >= maxFiles);
+
+  const handleButtonClick = () => {
+    if (!isDisabled) {
+      inputRef.current?.click();
+    }
   };
 
   return (
@@ -36,13 +46,23 @@ export default function ImageUploadField({
       {label && <label className="mb-2 block font-medium">{label}</label>}
 
       <input
+        ref={inputRef}
         type="file"
         accept={accept}
         multiple={multiple}
-        disabled={disabled || (maxFiles && images.length >= maxFiles)}
+        disabled={isDisabled}
         onChange={handleChange}
-        className="cursor-pointer"
+        className="hidden"
       />
+
+      <Button
+        type="button"
+        variant="outline"
+        disabled={isDisabled}
+        onClick={handleButtonClick}
+      >
+        Choose Image
+      </Button>
 
       {images.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-3">

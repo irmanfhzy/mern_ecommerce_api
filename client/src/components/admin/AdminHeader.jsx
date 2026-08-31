@@ -31,7 +31,10 @@ export default function AdminHeader({ onToggleSidebar }) {
           <Menu className="w-8 h-8" />
         </Button>
 
-        <Link to={PATHS.ADMIN.DASHBOARD} className="flex items-center gap-2">
+        <Link
+          to={PATHS.ADMIN.DASHBOARD}
+          className="hidden md:flex items-center gap-2"
+        >
           <Logo className="w-auto h-20 bg-transparent" />
         </Link>
       </Header.Left>

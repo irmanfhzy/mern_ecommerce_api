@@ -3,7 +3,7 @@ import { useContext, useEffect, useState } from "react";
 import { AppSettingContext } from "../../contexts/AppSettingContext";
 
 import AddressForm from "../../components/common/AddressForm";
-import ContactTable from "../../components/admin/ContactTable";
+import ContactForm from "../../components/admin/ContactForm";
 import Loading from "../../components/common/Loading";
 import Button from "../../components/common/Button";
 import ImageUploadField from "../../components/common/ImageUploadField";
@@ -269,11 +269,11 @@ export default function AppSetting() {
               onClick={() => handleAddItem("contact")}
               variant="primary"
             >
-              Add Contact
+              Add
             </Button>
           </div>
 
-          <ContactTable
+          <ContactForm
             contacts={form.contact}
             onChange={(index, field, value) =>
               handleItemChange("contact", index, field, value)
@@ -291,11 +291,11 @@ export default function AppSetting() {
               onClick={() => handleAddItem("socialMedia")}
               variant="primary"
             >
-              Add Social Media
+              Add
             </Button>
           </div>
 
-          <ContactTable
+          <ContactForm
             contacts={form.socialMedia}
             onChange={(index, field, value) =>
               handleItemChange("socialMedia", index, field, value)

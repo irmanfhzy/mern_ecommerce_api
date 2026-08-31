@@ -11,7 +11,7 @@ export default function ProductInfoForm({
     <div className="rounded-lg border bg-white p-6 shadow">
       <h2 className="mb-6 text-2xl font-bold">Product Information</h2>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="mb-2 block font-medium">Name</label>
 
