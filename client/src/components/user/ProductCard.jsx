@@ -7,25 +7,31 @@ export default function ProductCard({ product }) {
     height: 300,
     crop: "fill",
   });
+
   const hasPrice = product.priceRange != null;
 
   const minPrice = hasPrice ? formatPrice(product.priceRange.min) : "N/A";
 
   const maxPrice = hasPrice ? formatPrice(product.priceRange.max) : "N/A";
+
+  const price = minPrice === maxPrice ? minPrice : `${minPrice} - ${maxPrice}`;
+
   return (
-    <div className="flex flex-col gap-1 border rounded-2xl justify-between transition duration-300 hover:shadow-lg hover:-translate-y-1">
-      <div className="aspect-square">
+    <div className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-white transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+      <div className="aspect-square overflow-hidden">
         <img
           src={imageUrl}
           alt={product.name}
-          className=" object-cover rounded-md h-full w-full overflow-hidden"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
       </div>
-      <div className="p-2">
-        <h3>{product.name}</h3>
-      </div>
-      <div className="flex p-2">
-        {minPrice === maxPrice ? minPrice : `${minPrice} - ${maxPrice}`}
+
+      <div className="flex flex-1 flex-col justify-between p-3">
+        <h3 className="line-clamp-2 text-sm font-medium text-amber-600">
+          {product.name}
+        </h3>
+
+        <p className="mt-2 text-base font-semibold text-amber-600">{price}</p>
       </div>
     </div>
   );

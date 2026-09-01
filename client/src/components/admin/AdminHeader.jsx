@@ -21,7 +21,7 @@ export default function AdminHeader({ onToggleSidebar }) {
   const location = useLocation();
 
   return (
-    <Header className="h-25 grid grid-cols-[auto_1fr_auto] items-center gap-6 px-4 py-1 text-white bg-blue-600 shrink-0">
+    <Header className="h-25 grid grid-cols-[auto_1fr_auto] items-center gap-6 px-4 py-1 text-white bg-green-600 shrink-0">
       <Header.Left className="flex items-center gap-4">
         <Button
           variant="transparent"

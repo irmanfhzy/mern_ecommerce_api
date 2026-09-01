@@ -42,7 +42,7 @@ export default function UserHeader() {
 
   return (
     <Header
-      className={`sticky top-0 z-50 grid h-25 items-center gap-3 bg-amber-600 px-3 py-1 text-white md:gap-6 md:px-6 ${
+      className={`sticky top-0 z-50 grid h-25 items-center gap-3 bg-green-600 px-3 py-1 text-white md:gap-6 md:px-6 ${
         isHome
           ? "grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[auto_minmax(0,1fr)_auto]"
           : "grid-cols-[auto_minmax(0,1fr)_auto]"

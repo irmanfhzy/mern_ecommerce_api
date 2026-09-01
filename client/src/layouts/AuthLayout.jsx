@@ -23,7 +23,7 @@ export default function AuthLayout() {
         </div>
       </header>
 
-      <main className="flex flex-1 justify-center items-center p-4 bg-amber-600">
+      <main className="flex flex-1 justify-center items-center p-4 bg-green-600">
         <Outlet />
       </main>
     </div>
