@@ -81,12 +81,9 @@ export default function CartItem({
           decrementQuantity={onDecrease}
         />
 
-        <button
-          onClick={onDelete}
-          className="text-sm text-red-500 hover:text-red-600"
-        >
+        <Button onClick={onDelete} className="text-sm" variant="danger">
           Remove
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -180,6 +180,7 @@ export default function Cart() {
               loading={loadingButton}
               variant="primary"
               size="lg"
+              className="text-sm sm:text-base"
             >
               Checkout ({selectedItems.length})
             </Button>
