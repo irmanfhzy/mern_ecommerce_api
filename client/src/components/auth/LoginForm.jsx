@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext";
 import Button from "../common/Button";
@@ -12,7 +12,7 @@ export default function LoginForm() {
   });
 
   const [loading, setLoading] = useState(false);
-  const { login } = useContext(AuthContext);
+  const { login, googleLogin } = useContext(AuthContext);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,6 +50,60 @@ export default function LoginForm() {
       setLoading(false);
     }
   };
+
+  const handleGoogleLogin = useCallback(
+    async (credential) => {
+      try {
+        setLoading(true);
+
+        const loggedInUser = await googleLogin(credential);
+
+        alert("Login successful");
+
+        if (loggedInUser?.role === ROLE.ADMIN) {
+          navigate(location.state?.from?.pathname || PATHS.ADMIN.DASHBOARD, {
+            replace: true,
+          });
+        } else {
+          navigate(location.state?.from?.pathname || PATHS.PUBLIC.HOME, {
+            replace: true,
+          });
+        }
+      } catch (error) {
+        alert(error.response?.data?.message || "Google login failed");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [googleLogin, navigate, location],
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (window.google?.accounts?.id) {
+        clearInterval(interval);
+
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          callback: (response) => {
+            handleGoogleLogin(response.credential);
+          },
+        });
+
+        window.google.accounts.id.renderButton(
+          document.getElementById("google-button"),
+          {
+            theme: "outline",
+            size: "large",
+            width: "100%",
+          },
+        );
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [handleGoogleLogin]);
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -91,6 +145,8 @@ export default function LoginForm() {
       >
         Login
       </Button>
+
+      <div id="google-button" className="w-full" />
 
       <p className="text-sm text-center">
         Don&apos;t have an account?{" "}

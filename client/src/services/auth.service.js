@@ -8,6 +8,10 @@ export const login = async (data) => {
   return await api.post("/auth/login", data);
 };
 
+export const googleLogin = async (credential) => {
+  return await api.post("/auth/google", { credential });
+};
+
 export const getMe = async () => {
   return await api.get("/auth/me");
 };

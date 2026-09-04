@@ -1,3 +1,5 @@
+import { OAuth2Client } from "google-auth-library";
+
 import User from "../models/user.model.js";
 import argon2 from "argon2";
 import normalizePhone from "../utils/phoneNormalizer.js";
@@ -8,6 +10,8 @@ import {
 } from "../utils/jwt.js";
 import * as checker from "../utils/errorChecker.js";
 import AppError from "../utils/AppError.js";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const register = async (body) => {
   const { name, email, password, confirmPassword } = body;
@@ -54,6 +58,71 @@ export const login = async (body) => {
   if (!isPasswordValid) {
     throw new AppError("Invalid credentials", 401);
   }
+  const accessToken = generateAccessToken(user._id, user.role);
+  const refreshToken = generateRefreshToken(user._id, user.role);
+
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  return {
+    accessToken,
+    refreshToken,
+    data: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      phone: user.phone,
+      role: user.role,
+      image: user.image,
+    },
+  };
+};
+
+export const googleLogin = async (credential) => {
+  const ticket = await googleClient.verifyIdToken({
+    idToken: credential,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+
+  const {
+    sub: googleId,
+    email,
+    name,
+    picture,
+    email_verified: emailVerified,
+  } = payload;
+
+  if (!emailVerified) {
+    throw new AppError("Google email is not verified", 401);
+  }
+
+  let user = await User.findOne({ googleId }).select("+refreshToken");
+
+  if (!user) {
+    user = await User.findOne({ email }).select("+refreshToken");
+
+    if (user) {
+      user.googleId = googleId;
+
+      if (!user.image?.url && picture) {
+        user.image = { url: picture };
+      }
+
+      await user.save();
+    } else {
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        image: picture ? { url: picture } : undefined,
+        role: "user",
+      });
+    }
+  }
+
   const accessToken = generateAccessToken(user._id, user.role);
   const refreshToken = generateRefreshToken(user._id, user.role);
 

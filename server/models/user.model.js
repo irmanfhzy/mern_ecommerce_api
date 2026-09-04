@@ -52,7 +52,6 @@ const userSchema = mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
       select: false,
     },
     role: {
@@ -68,6 +67,11 @@ const userSchema = mongoose.Schema(
     refreshToken: {
       type: String,
       select: false,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
     },
   },
   { timestamps: true },

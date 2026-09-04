@@ -3,6 +3,7 @@ import { AuthContext } from "../contexts/AuthContext";
 import {
   register as registerApi,
   login as loginApi,
+  googleLogin as googleLoginApi,
   getMe as getMeApi,
   logout as logoutApi,
 } from "../services/auth.service";
@@ -20,6 +21,16 @@ export default function AuthProvider({ children }) {
     localStorage.setItem("accessToken", res.data.accessToken);
     localStorage.setItem("refreshToken", res.data.refreshToken);
     setUser(res.data.data);
+    return res.data.data;
+  };
+
+  const googleLogin = async (credential) => {
+    const res = await googleLoginApi(credential);
+
+    localStorage.setItem("accessToken", res.data.accessToken);
+    localStorage.setItem("refreshToken", res.data.refreshToken);
+    setUser(res.data.data);
+
     return res.data.data;
   };
 
@@ -62,6 +73,7 @@ export default function AuthProvider({ children }) {
         loading,
         register,
         login,
+        googleLogin,
         logout,
         getMe,
       }}

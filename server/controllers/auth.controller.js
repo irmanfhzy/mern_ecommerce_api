@@ -14,6 +14,11 @@ export const loginController = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, ...data });
 });
 
+export const googleLoginController = asyncHandler(async (req, res) => {
+  const data = await authService.googleLogin(req.body.credential);
+  res.status(200).json({ success: true, ...data });
+});
+
 export const refreshAccessTokenController = asyncHandler(async (req, res) => {
   const data = await authService.refreshAccessToken(req.body);
   res.status(200).json({ success: true, ...data });

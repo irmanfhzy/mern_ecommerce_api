@@ -10,6 +10,7 @@ import rules from "../validations/normalizerRules.js";
 import {
   registerController,
   loginController,
+  googleLoginController,
   refreshAccessTokenController,
   getMeController,
   logoutController,
@@ -30,6 +31,8 @@ router.post(
   normalizeRequestBody(rules.auth.login),
   loginController,
 );
+
+router.post("/google", googleLoginController);
 
 router.post("/refresh-token", refreshAccessTokenController);
 
