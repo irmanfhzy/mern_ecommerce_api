@@ -1,6 +1,5 @@
 import express from "express";
 
-import normalizeRequestBody from "../middlewares/requestBodyNormalizer.middleware.js";
 import validateRequestBody from "../middlewares/requestBodyValidator.middleware.js";
 import validateRequestFiles from "../middlewares/requestFilesValidator.middleware.js";
 import validateObjectId from "../middlewares/objectIdValidator.middleware.js";

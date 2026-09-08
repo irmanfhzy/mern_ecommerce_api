@@ -133,6 +133,15 @@ const rules = {
       },
     },
   },
+  shipping: {
+    rates: {
+      originPostalCode: "number",
+      destinationPostalCode: "number",
+      weight: "number",
+      couriers: "lowercase",
+      value: "number",
+    },
+  },
 };
 
 export default rules;

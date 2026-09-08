@@ -13,6 +13,7 @@ import InventoryHistoryRoutes from "./routes/inventoryHistory.route.js";
 import appSettingRoutes from "./routes/appSetting.route.js";
 import adminRoutes from "./routes/admin.route.js";
 import paymentRoutes from "./routes/payment.route.js";
+import shippingRoute from "./routes/shipping.route.js";
 
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 
@@ -35,9 +36,6 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-// Pastikan koneksi DB siap SEBELUM request menyentuh route apapun
-// yang butuh database. Ini mencegah "buffering timed out" di serverless,
-// karena tiap request akan reconnect kalau koneksi sebelumnya sudah stale.
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -58,6 +56,7 @@ app.use("/inventory-histories", InventoryHistoryRoutes);
 app.use("/app-setting", appSettingRoutes);
 app.use("/admin", adminRoutes);
 app.use("/payments", paymentRoutes);
+app.use("/shipping", shippingRoute);
 
 app.use(errorHandler);
 

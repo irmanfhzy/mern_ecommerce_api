@@ -123,6 +123,18 @@ const requestBodySchemas = {
       required: ["appName"],
     },
   },
+
+  shipping: {
+    rates: {
+      required: [
+        "originPostalCode",
+        "destinationPostalCode",
+        "weight",
+        "couriers",
+        "value",
+      ],
+    },
+  },
 };
 
 export default requestBodySchemas;
