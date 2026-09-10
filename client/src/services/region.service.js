@@ -1,19 +1,46 @@
 import axios from "axios";
 
-const API_URL = "https://www.emsifa.com/api-wilayah-indonesia/api";
+const API_URL = "https://konoland-api.vercel.app";
 
 export const getProvinces = async () => {
-  return await axios.get(`${API_URL}/provinces.json`);
+  const response = await axios.get(`${API_URL}/province`, {
+    params: {
+      limit: 100,
+    },
+  });
+
+  return response.data.data;
 };
 
-export const getCities = async (provinceId) => {
-  return await axios.get(`${API_URL}/regencies/${provinceId}.json`);
+export const getCities = async (provinceCode) => {
+  const response = await axios.get(`${API_URL}/regency`, {
+    params: {
+      provinceCode,
+      limit: 1000,
+    },
+  });
+
+  return response.data.data;
 };
 
-export const getDistricts = async (cityId) => {
-  return await axios.get(`${API_URL}/districts/${cityId}.json`);
+export const getDistricts = async (regencyCode) => {
+  const response = await axios.get(`${API_URL}/district`, {
+    params: {
+      regencyCode,
+      limit: 1000,
+    },
+  });
+
+  return response.data.data;
 };
 
-export const getVillages = async (districtId) => {
-  return await axios.get(`${API_URL}/villages/${districtId}.json`);
+export const getVillages = async (districtCode) => {
+  const response = await axios.get(`${API_URL}/village`, {
+    params: {
+      districtCode,
+      limit: 1000,
+    },
+  });
+
+  return response.data.data;
 };

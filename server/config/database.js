@@ -9,7 +9,7 @@ if (customDnsServers) {
   console.log("Using custom DNS servers:", servers);
 }
 
-const MONGODB_URL = process.env.MONGODB_URL;
+const MONGODB_URL = process.env.MONGODB_URI;
 
 let cached = global._mongoose;
 
@@ -24,7 +24,7 @@ const connectDB = async () => {
 
   if (!cached.promise) {
     const opts = {
-      dbName: "mern_ecommerce",
+      dbName: process.env.MONGODB_NAME,
       bufferCommands: false,
       serverSelectionTimeoutMS: 10000,
     };

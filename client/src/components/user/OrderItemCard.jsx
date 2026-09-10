@@ -8,7 +8,7 @@ export default function OrderItemCard({ items }) {
       {items.map((item) => (
         <div
           key={item.variantId}
-          className="flex gap-4 border-b pb-6 last:border-b-0 last:pb-0"
+          className="flex flex-col sm:flex-row gap-4 border-b pb-6 last:border-b-0 last:pb-0"
         >
           <img
             src={getImageUrl(item.variantImage, {
@@ -35,14 +35,14 @@ export default function OrderItemCard({ items }) {
               </div>
             )}
 
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-gray-500">Quantity</p>
 
                 <p className="font-semibold">{item.quantity}</p>
               </div>
 
-              <div className="text-right">
+              <div className="sm:text-right">
                 <p className="text-sm text-gray-500">Price</p>
 
                 <p className="font-semibold">
@@ -50,7 +50,7 @@ export default function OrderItemCard({ items }) {
                 </p>
               </div>
 
-              <div className="text-right">
+              <div className="sm:text-right">
                 <p className="text-sm text-gray-500">Subtotal</p>
 
                 <p className="font-bold">

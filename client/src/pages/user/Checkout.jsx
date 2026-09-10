@@ -3,42 +3,51 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 import { CartContext } from "../../contexts/CartContext";
 import { ConfirmationDialogContext } from "../../contexts/ConfirmationDialogContext";
+import { AppSettingContext } from "../../contexts/AppSettingContext";
 
 import Button from "../../components/common/Button";
 import AddressCard from "../../components/user/AddressCard";
 import OrderItemCard from "../../components/user/OrderItemCard";
 import Loading from "../../components/common/Loading";
+import Modal from "../../components/common/Modal";
 
 import formatPrice from "../../utils/priceFormatter";
 
 import { createOrder } from "../../services/order.service";
 import { getProfile } from "../../services/user.service";
 import { getVariantById } from "../../services/variant.service";
+import { getShippingRates } from "../../services/shipping.service";
 
 import { openMidtransSnap } from "../../utils/midtrans";
 
-import Modal from "../../components/common/Modal";
-
 export default function Checkout() {
   const navigate = useNavigate();
-
   const location = useLocation();
 
   const { cart, fetchCart } = useContext(CartContext);
   const { openDialog, closeDialog } = useContext(ConfirmationDialogContext);
+  const { appSetting } = useContext(AppSettingContext);
 
   const [buyNowItem, setBuyNowItem] = useState(null);
   const [buyNowVariant, setBuyNowVariant] = useState(null);
+
   const [selectedVariantIds, setSelectedVariantIds] = useState([]);
+
   const [loadingPage, setLoadingPage] = useState(true);
   const [loadingButton, setLoadingButton] = useState(false);
+  const [loadingShipping, setLoadingShipping] = useState(false);
+
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [pendingAddressId, setPendingAddressId] = useState(null);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
+  const [shippingRates, setShippingRates] = useState([]);
+  const [selectedShipping, setSelectedShipping] = useState(null);
+
   const searchParams = new URLSearchParams(location.search);
   const isBuyNow = searchParams.get("mode") === "buy-now";
+  const originPostalCode = Number(appSetting?.address?.postalCode);
 
   const checkoutItems = useMemo(() => {
     if (buyNowItem && buyNowVariant) {
@@ -70,6 +79,7 @@ export default function Checkout() {
   useEffect(() => {
     try {
       setLoadingPage(true);
+
       if (isBuyNow) {
         const item = JSON.parse(localStorage.getItem("buyNowItem") || "null");
 
@@ -103,6 +113,7 @@ export default function Checkout() {
     const fetchVariant = async () => {
       try {
         setLoadingPage(true);
+
         const res = await getVariantById(buyNowItem.variantId);
 
         setBuyNowVariant(res.data.data);
@@ -117,10 +128,6 @@ export default function Checkout() {
     fetchVariant();
   }, [buyNowItem, navigate]);
 
-  const selectedAddress = useMemo(() => {
-    return addresses.find((address) => address._id === selectedAddressId);
-  }, [addresses, selectedAddressId]);
-
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -128,11 +135,13 @@ export default function Checkout() {
 
         const res = await getProfile();
 
-        const addresses = res.data.data.addresses;
+        const userAddresses = res.data.data.addresses;
 
-        setAddresses(addresses);
+        setAddresses(userAddresses);
 
-        const defaultAddress = addresses.find((address) => address.isDefault);
+        const defaultAddress = userAddresses.find(
+          (address) => address.isDefault,
+        );
 
         if (defaultAddress) {
           setSelectedAddressId(defaultAddress._id);
@@ -147,22 +156,89 @@ export default function Checkout() {
     fetchUser();
   }, []);
 
+  const selectedAddress = useMemo(() => {
+    return addresses.find((address) => address._id === selectedAddressId);
+  }, [addresses, selectedAddressId]);
+
   const summary = useMemo(() => {
     return checkoutItems.reduce(
       (acc, item) => {
         const subtotal = item.priceAtAdded * item.quantity;
 
         acc.totalItems += item.quantity;
-        acc.totalPrice += subtotal;
+        acc.subtotal += subtotal;
 
         return acc;
       },
       {
         totalItems: 0,
-        totalPrice: 0,
+        subtotal: 0,
       },
     );
   }, [checkoutItems]);
+
+  const shippingPrice = selectedShipping ? Number(selectedShipping.price) : 0;
+
+  const totalPrice = summary.subtotal + shippingPrice;
+
+  useEffect(() => {
+    if (!selectedAddress?.postalCode) {
+      setShippingRates([]);
+      setSelectedShipping(null);
+      return;
+    }
+
+    if (!originPostalCode) {
+      return;
+    }
+
+    if (!checkoutItems.length) {
+      return;
+    }
+
+    const fetchShippingRates = async () => {
+      try {
+        setLoadingShipping(true);
+
+        setShippingRates([]);
+        setSelectedShipping(null);
+
+        const res = await getShippingRates({
+          items: checkoutItems.map((item) => ({
+            variantId: item.variantId._id,
+            quantity: item.quantity,
+          })),
+
+          originPostalCode,
+
+          destinationPostalCode: Number(selectedAddress.postalCode),
+
+          couriers: "jne,jnt,sicepat",
+        });
+
+        const rates = res.data.data.pricing || [];
+
+        setShippingRates(rates);
+
+        if (rates.length === 0) {
+          alert("No shipping service is available for this address.");
+        }
+      } catch (error) {
+        setShippingRates([]);
+        setSelectedShipping(null);
+
+        alert(error.response?.data?.message || error.message);
+      } finally {
+        setLoadingShipping(false);
+      }
+    };
+
+    fetchShippingRates();
+  }, [selectedAddress, originPostalCode, checkoutItems]);
+
+  const handleSelectShipping = (rate) => {
+    setSelectedShipping(rate);
+  };
 
   const handleOpenAddressModal = () => {
     setPendingAddressId(selectedAddressId);
@@ -183,6 +259,16 @@ export default function Checkout() {
   };
 
   const handlePlaceOrder = async () => {
+    if (!selectedAddress) {
+      alert("Please select a shipping address.");
+      return;
+    }
+
+    if (!selectedShipping) {
+      alert("Please select a shipping service.");
+      return;
+    }
+
     try {
       setLoadingButton(true);
 
@@ -191,8 +277,16 @@ export default function Checkout() {
           variantId: item.variantId._id,
           quantity: item.quantity,
         })),
-        totalPrice: summary.totalPrice,
+
+        totalPrice,
+
         shippingAddress: selectedAddress,
+
+        shipping: {
+          courierCode: selectedShipping.courier_code,
+
+          serviceCode: selectedShipping.courier_service_code,
+        },
       };
 
       const res = await createOrder(payload);
@@ -252,7 +346,7 @@ export default function Checkout() {
 
       <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
         <div className="space-y-6">
-          <section className=" flex flex-col gap-4 rounded-2xl border bg-white p-6">
+          <section className="flex flex-col gap-4 rounded-2xl border bg-white p-6">
             <h2 className="mb-4 text-lg font-semibold">Shipping Address</h2>
 
             {selectedAddress ? (
@@ -262,6 +356,7 @@ export default function Checkout() {
                   selected={true}
                   selectable={false}
                 />
+
                 <Button
                   onClick={handleOpenAddressModal}
                   variant="ghost"
@@ -274,6 +369,7 @@ export default function Checkout() {
             ) : (
               <>
                 <div>You do not have any addresses</div>
+
                 <Button
                   variant="primary"
                   onClick={handleAddAddress}
@@ -282,6 +378,66 @@ export default function Checkout() {
                   Add Address
                 </Button>
               </>
+            )}
+          </section>
+
+          <section className="rounded-2xl border bg-white p-6">
+            <h2 className="mb-6 text-lg font-semibold">Shipping Method</h2>
+
+            {!selectedAddress ? (
+              <p className="text-gray-500">
+                Please select a shipping address first.
+              </p>
+            ) : loadingShipping ? (
+              <p className="text-gray-500">Calculating shipping rates...</p>
+            ) : shippingRates.length === 0 ? (
+              <p className="text-gray-500">No shipping service available.</p>
+            ) : (
+              <div className="space-y-3">
+                {shippingRates.map((rate) => {
+                  const isSelected =
+                    selectedShipping?.courier_code === rate.courier_code &&
+                    selectedShipping?.courier_service_code ===
+                      rate.courier_service_code;
+
+                  return (
+                    <button
+                      type="button"
+                      key={`${rate.courier_code}-${rate.courier_service_code}`}
+                      onClick={() => handleSelectShipping(rate)}
+                      className={`w-full rounded-xl border p-4 text-left transition ${
+                        isSelected
+                          ? "border-black ring-1 ring-black"
+                          : "hover:border-gray-400"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="font-semibold">{rate.courier_name}</p>
+
+                          <p className="text-sm text-gray-600">
+                            {rate.courier_service_name}
+                          </p>
+
+                          {rate.description && (
+                            <p className="mt-1 text-xs text-gray-500">
+                              {rate.description}
+                            </p>
+                          )}
+
+                          <p className="mt-1 text-xs text-gray-500">
+                            Estimated delivery: {rate.duration}
+                          </p>
+                        </div>
+
+                        <p className="font-semibold whitespace-nowrap">
+                          {formatPrice(rate.price)}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </section>
 
@@ -305,13 +461,19 @@ export default function Checkout() {
             <div className="flex justify-between">
               <span>Subtotal</span>
 
-              <span>{formatPrice(summary.totalPrice)}</span>
+              <span>{formatPrice(summary.subtotal)}</span>
+            </div>
+
+            <div className="flex justify-between">
+              <span>Shipping</span>
+
+              <span>{selectedShipping ? formatPrice(shippingPrice) : "-"}</span>
             </div>
 
             <div className="flex justify-between border-t pt-4 text-lg font-bold">
               <span>Total</span>
 
-              <span>{formatPrice(summary.totalPrice)}</span>
+              <span>{formatPrice(totalPrice)}</span>
             </div>
           </div>
 
@@ -328,7 +490,9 @@ export default function Checkout() {
                 loading: loadingButton,
               })
             }
-            disabled={!selectedAddressId}
+            disabled={
+              !selectedAddressId || !selectedShipping || loadingShipping
+            }
           >
             Place Order
           </Button>
@@ -349,6 +513,7 @@ export default function Checkout() {
             onSelect={(a) => setPendingAddressId(a._id)}
           />
         ))}
+
         <div className="flex justify-between mt-3">
           <Button
             variant="primary"
@@ -357,6 +522,7 @@ export default function Checkout() {
           >
             Add Address
           </Button>
+
           <div>
             <Button
               onClick={() => setIsAddressModalOpen(false)}
@@ -364,6 +530,7 @@ export default function Checkout() {
             >
               Cancel
             </Button>
+
             <Button
               onClick={handleChangeAddress}
               variant="primary"

@@ -1,5 +1,3 @@
-import Button from "./Button";
-
 export default function AddressForm({
   form,
 
@@ -20,7 +18,6 @@ export default function AddressForm({
 }) {
   return (
     <>
-      {/* Recipient */}
       {showRecipient && (
         <div className="grid gap-6 md:grid-cols-2">
           <div>
@@ -55,7 +52,6 @@ export default function AddressForm({
         </div>
       )}
 
-      {/* Label */}
       {showLabel && (
         <div>
           <label className="mb-2 block text-sm font-medium">
@@ -73,7 +69,6 @@ export default function AddressForm({
         </div>
       )}
 
-      {/* Region */}
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           <label className="mb-2 block text-sm font-medium">Province</label>
@@ -86,8 +81,8 @@ export default function AddressForm({
             <option value="">Select Province</option>
 
             {provinces.map((province) => (
-              <option key={province.id} value={province.id}>
-                {province.name}
+              <option key={province.code} value={province.code}>
+                {province.province}
               </option>
             ))}
           </select>
@@ -102,13 +97,13 @@ export default function AddressForm({
             value={form.cityId}
             onChange={onCityChange}
             disabled={!form.provinceId}
-            className="w-full rounded-lg border px-4 py-2 outline-none transition disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-full rounded-lg border px-4 py-2 outline-none transition focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
           >
             <option value="">Select City / Regency</option>
 
             {cities.map((city) => (
-              <option key={city.id} value={city.id}>
-                {city.name}
+              <option key={city.code} value={city.code}>
+                {city.regency}
               </option>
             ))}
           </select>
@@ -121,13 +116,13 @@ export default function AddressForm({
             value={form.districtId}
             onChange={onDistrictChange}
             disabled={!form.cityId}
-            className="w-full rounded-lg border px-4 py-2 outline-none transition disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-full rounded-lg border px-4 py-2 outline-none transition focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
           >
             <option value="">Select District</option>
 
             {districts.map((district) => (
-              <option key={district.id} value={district.id}>
-                {district.name}
+              <option key={district.code} value={district.code}>
+                {district.district}
               </option>
             ))}
           </select>
@@ -140,20 +135,19 @@ export default function AddressForm({
             value={form.villageId}
             onChange={onVillageChange}
             disabled={!form.districtId}
-            className="w-full rounded-lg border px-4 py-2 outline-none transition disabled:bg-gray-100 disabled:text-gray-400"
+            className="w-full rounded-lg border px-4 py-2 outline-none transition focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
           >
             <option value="">Select Village</option>
 
             {villages.map((village) => (
-              <option key={village.id} value={village.id}>
-                {village.name}
+              <option key={village.code} value={village.code}>
+                {village.village}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Postal Code */}
       <div>
         <label className="mb-2 block text-sm font-medium">Postal Code</label>
 
@@ -161,13 +155,12 @@ export default function AddressForm({
           type="text"
           name="postalCode"
           value={form.postalCode}
-          onChange={onChange}
-          placeholder="40111"
-          className="w-full rounded-lg border px-4 py-2 outline-none transition focus:border-blue-500"
+          readOnly
+          placeholder="Select village first"
+          className="w-full cursor-not-allowed rounded-lg border bg-gray-100 px-4 py-2 text-gray-600 outline-none"
         />
       </div>
 
-      {/* Street */}
       <div>
         <label className="mb-2 block text-sm font-medium">Street Address</label>
 
@@ -181,7 +174,6 @@ export default function AddressForm({
         />
       </div>
 
-      {/* Default Address */}
       {showDefault && (
         <label className="flex items-center gap-3">
           <input

@@ -48,11 +48,9 @@ export default function UserHeader() {
           : "grid-cols-[auto_minmax(0,1fr)_auto]"
       }`}
     >
-      {/* LEFT */}
       <Header.Left
         className={`items-center ${isHome ? "hidden md:flex" : "flex"}`}
       >
-        {/* Desktop */}
         <div className="hidden items-center gap-4 md:flex">
           <Link
             to={PATHS.PUBLIC.HOME}
@@ -68,7 +66,6 @@ export default function UserHeader() {
           />
         </div>
 
-        {/* Mobile + Tablet */}
         <Link
           to={PATHS.PUBLIC.HOME}
           onClick={() => setKeyword("")}
@@ -79,7 +76,6 @@ export default function UserHeader() {
         </Link>
       </Header.Left>
 
-      {/* CENTER */}
       <Header.Center className="flex h-8 justify-center">
         {isHome ? (
           <SearchBar
@@ -95,7 +91,6 @@ export default function UserHeader() {
         )}
       </Header.Center>
 
-      {/* RIGHT */}
       <Header.Right className="flex min-w-max items-center justify-end gap-3 md:gap-6">
         <CartButton />
 
@@ -126,7 +121,6 @@ export default function UserHeader() {
           </Dropdown>
         ) : (
           <>
-            {/* Mobile + Tablet */}
             <Link
               to={PATHS.PUBLIC.LOGIN}
               className="flex items-center justify-center md:hidden"
@@ -135,7 +129,6 @@ export default function UserHeader() {
               <ProfilePicture alt="Login" />
             </Link>
 
-            {/* Desktop */}
             <div className="hidden items-center gap-2 md:flex">
               <Link to={PATHS.PUBLIC.LOGIN}>Login</Link>
 

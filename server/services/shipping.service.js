@@ -1,5 +1,10 @@
 import axios from "axios";
+
 import AppError from "../utils/AppError.js";
+import * as checker from "../utils/errorChecker.js";
+
+import * as cartService from "./cart.service.js";
+import Variant from "../models/variant.model.js";
 
 const biteship = axios.create({
   baseURL: "https://api.biteship.com",
@@ -9,95 +14,125 @@ const biteship = axios.create({
   },
 });
 
-export const searchAreas = async (query) => {
-  try {
-    const response = await biteship.get("/v1/maps/areas", {
-      params: {
-        input: query,
-      },
+const calculateShippingItems = async (cart, selectedItems) => {
+  const shippingItems = [];
+
+  for (const selectedItem of selectedItems) {
+    if (!selectedItem.variantId || !selectedItem.quantity) {
+      throw new AppError("Invalid shipping item", 400);
+    }
+
+    let variant = null;
+
+    const cartItem = cart?.items?.find(
+      (item) =>
+        item.variantId._id.toString() === selectedItem.variantId.toString(),
+    );
+
+    if (cartItem) {
+      if (selectedItem.quantity > cartItem.quantity) {
+        throw new AppError(
+          `Quantity for variant ${selectedItem.variantId} exceeds cart quantity`,
+          400,
+        );
+      }
+
+      variant = cartItem.variantId;
+    } else {
+      variant = await Variant.findById(selectedItem.variantId).populate(
+        "productId",
+      );
+    }
+
+    checker.checkDocument(
+      variant,
+      `Variant ${selectedItem.variantId} not found`,
+      404,
+    );
+
+    checker.checkDocument(
+      variant.productId,
+      `Product for variant ${selectedItem.variantId} not found`,
+      404,
+    );
+
+    shippingItems.push({
+      name: variant.productId.name,
+      weight: variant.weight,
+      quantity: selectedItem.quantity,
+      value: variant.sellingPrice,
     });
-
-    return response.data;
-  } catch (error) {
-    const status = error.response?.status ?? 502;
-    const data = error.response?.data;
-
-    throw new AppError(data?.error || "Biteship area search failed", status);
   }
+
+  return shippingItems;
 };
 
-export const getShippingRates = async ({
-  originPostalCode,
-  destinationPostalCode,
-  weight,
-  couriers,
-  value,
-}) => {
-  if (!originPostalCode || !destinationPostalCode) {
-    throw new AppError(
-      "originPostalCode and destinationPostalCode are required",
-      400,
-    );
-  }
+export const getShippingRates = async (userId, body) => {
+  const {
+    items: selectedItems,
+    originPostalCode,
+    destinationPostalCode,
+    couriers,
+  } = body;
 
-  if (!weight) {
-    throw new AppError("weight is required", 400);
-  }
-
-  if (!couriers) {
-    throw new AppError(
-      'couriers is required (e.g. "jne" or "jne,jnt,sicepat")',
-      400,
-    );
-  }
-
-  if (!value) {
-    throw new AppError("value (item declared value in IDR) is required", 400);
+  if (!selectedItems?.length) {
+    throw new AppError("At least one item is required", 400);
   }
 
   const originPC = Number(originPostalCode);
   const destinationPC = Number(destinationPostalCode);
 
-  if (Number.isNaN(originPC) || Number.isNaN(destinationPC)) {
+  if (!Number.isFinite(originPC) || !Number.isFinite(destinationPC)) {
     throw new AppError("Postal codes must be valid numbers", 400);
   }
 
-  // Cocokkan kode pos tujuan dengan data Biteship
-  const areaResult = await searchAreas(destinationPC);
-
-  const areas = areaResult?.areas || [];
-
-  const matchedArea = areas.find((area) =>
-    area.postal_code?.includes(destinationPC),
-  );
-
-  if (!matchedArea) {
-    throw new AppError(
-      "Destination postal code is not available in Biteship",
-      400,
-    );
+  if (!couriers) {
+    throw new AppError("Couriers is required", 400);
   }
+
+  const cart = await cartService.getCart(userId);
+
+  const shippingItems = await calculateShippingItems(cart, selectedItems);
 
   try {
     const response = await biteship.post("/v1/rates/couriers", {
       origin_postal_code: originPC,
       destination_postal_code: destinationPC,
       couriers,
-      items: [
-        {
-          name: "Package",
-          weight,
-          quantity: 1,
-          value,
-        },
-      ],
+      items: shippingItems,
     });
 
     return response.data;
   } catch (error) {
     const status = error.response?.status ?? 502;
+
     const data = error.response?.data;
 
-    throw new AppError(data?.error || "Biteship rates request failed", status);
+    throw new AppError(
+      data?.error || data?.message || "Biteship rates request failed",
+      status,
+    );
+  }
+};
+
+export const searchAreas = async (query) => {
+  const input = query.input;
+  try {
+    const response = await biteship.get("/v1/maps/areas", {
+      params: {
+        input,
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    const status = error.response?.status ?? 502;
+
+    const data = error.response?.data;
+
+    throw new AppError(
+      data?.error || data?.message || "Biteship area search failed",
+      status,
+    );
   }
 };

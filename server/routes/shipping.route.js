@@ -14,7 +14,7 @@ import rules from "../validations/normalizerRules.js";
 
 const router = express.Router();
 
-// router.use(authenticate);
+router.use(authenticate);
 
 router.get("/areas", searchAreasController);
 router.post(

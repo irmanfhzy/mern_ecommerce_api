@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   getProvinces,
@@ -32,59 +32,151 @@ const createInitialForm = (initialData = {}) => ({
 });
 
 export default function useIndonesiaRegion(initialData = {}) {
-  const [form, setForm] = useState(createInitialForm(initialData));
+  const [form, setForm] = useState(() => createInitialForm(initialData));
 
   const [provinces, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [villages, setVillages] = useState([]);
 
-  const fetchProvinces = async () => {
+  const [loading, setLoading] = useState({
+    provinces: false,
+    cities: false,
+    districts: false,
+    villages: false,
+  });
+
+  const loadProvinces = useCallback(async () => {
+    setLoading((prev) => ({
+      ...prev,
+      provinces: true,
+    }));
+
     try {
-      const res = await getProvinces();
-      setProvinces(res.data);
+      const data = await getProvinces();
+
+      setProvinces(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error(error);
+      console.error("Failed to load provinces:", error);
+      setProvinces([]);
+    } finally {
+      setLoading((prev) => ({
+        ...prev,
+        provinces: false,
+      }));
     }
-  };
+  }, []);
 
-  const initializeRegion = useCallback(async (address) => {
-    const [citiesRes, districtsRes, villagesRes] = await Promise.all([
-      getCities(address.provinceId),
-      getDistricts(address.cityId),
-      getVillages(address.districtId),
-    ]);
+  const loadCities = useCallback(async (provinceCode) => {
+    if (!provinceCode) {
+      setCities([]);
+      return [];
+    }
 
-    setCities(citiesRes.data);
-    setDistricts(districtsRes.data);
-    setVillages(villagesRes.data);
+    setLoading((prev) => ({
+      ...prev,
+      cities: true,
+    }));
+
+    try {
+      const data = await getCities(provinceCode);
+
+      const result = Array.isArray(data) ? data : [];
+
+      setCities(result);
+
+      return result;
+    } catch (error) {
+      console.error("Failed to load cities:", error);
+      setCities([]);
+
+      return [];
+    } finally {
+      setLoading((prev) => ({
+        ...prev,
+        cities: false,
+      }));
+    }
+  }, []);
+
+  const loadDistricts = useCallback(async (regencyCode) => {
+    if (!regencyCode) {
+      setDistricts([]);
+      return [];
+    }
+
+    setLoading((prev) => ({
+      ...prev,
+      districts: true,
+    }));
+
+    try {
+      const data = await getDistricts(regencyCode);
+
+      const result = Array.isArray(data) ? data : [];
+
+      setDistricts(result);
+
+      return result;
+    } catch (error) {
+      console.error("Failed to load districts:", error);
+      setDistricts([]);
+
+      return [];
+    } finally {
+      setLoading((prev) => ({
+        ...prev,
+        districts: false,
+      }));
+    }
+  }, []);
+
+  const loadVillages = useCallback(async (districtCode) => {
+    if (!districtCode) {
+      setVillages([]);
+      return [];
+    }
+
+    setLoading((prev) => ({
+      ...prev,
+      villages: true,
+    }));
+
+    try {
+      const data = await getVillages(districtCode);
+
+      const result = Array.isArray(data) ? data : [];
+
+      setVillages(result);
+
+      return result;
+    } catch (error) {
+      console.error("Failed to load villages:", error);
+      setVillages([]);
+
+      return [];
+    } finally {
+      setLoading((prev) => ({
+        ...prev,
+        villages: false,
+      }));
+    }
   }, []);
 
   useEffect(() => {
-    fetchProvinces();
-  }, []);
+    loadProvinces();
+  }, [loadProvinces]);
 
-  const handleChange = (e) => {
-    const { name, value, checked, type } = e.target;
+  const handleProvinceChange = async (event) => {
+    const provinceId = event.target.value;
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
-  const handleProvinceChange = async (e) => {
-    const provinceId = e.target.value;
-
-    const selectedProvince = provinces.find(
-      (province) => province.id === provinceId,
-    );
+    const province = provinces.find((item) => item.code === provinceId);
 
     setForm((prev) => ({
       ...prev,
 
-      provinceId: selectedProvince?.id ?? "",
-      province: selectedProvince?.name ?? "",
+      provinceId,
+      province: province?.province ?? "",
 
       cityId: "",
       city: "",
@@ -94,120 +186,173 @@ export default function useIndonesiaRegion(initialData = {}) {
 
       villageId: "",
       village: "",
+
+      postalCode: "",
     }));
 
     setCities([]);
     setDistricts([]);
     setVillages([]);
 
-    if (!selectedProvince) return;
-
-    try {
-      const res = await getCities(selectedProvince.id);
-      setCities(res.data);
-    } catch (error) {
-      console.error(error);
+    if (provinceId) {
+      await loadCities(provinceId);
     }
   };
 
-  const handleCityChange = async (e) => {
-    const cityId = e.target.value;
+  const handleCityChange = async (event) => {
+    const cityId = event.target.value;
 
-    const selectedCity = cities.find((city) => city.id === cityId);
+    const city = cities.find((item) => item.code === cityId);
 
     setForm((prev) => ({
       ...prev,
 
-      cityId: selectedCity?.id ?? "",
-      city: selectedCity?.name ?? "",
+      cityId,
+      city: city?.regency ?? "",
 
       districtId: "",
       district: "",
 
       villageId: "",
       village: "",
+
+      postalCode: "",
     }));
 
     setDistricts([]);
     setVillages([]);
 
-    if (!selectedCity) return;
-
-    try {
-      const res = await getDistricts(selectedCity.id);
-      setDistricts(res.data);
-    } catch (error) {
-      console.error(error);
+    if (cityId) {
+      await loadDistricts(cityId);
     }
   };
 
-  const handleDistrictChange = async (e) => {
-    const districtId = e.target.value;
+  const handleDistrictChange = async (event) => {
+    const districtId = event.target.value;
 
-    const selectedDistrict = districts.find(
-      (district) => district.id === districtId,
-    );
+    const district = districts.find((item) => item.code === districtId);
 
     setForm((prev) => ({
       ...prev,
 
-      districtId: selectedDistrict?.id ?? "",
-      district: selectedDistrict?.name ?? "",
+      districtId,
+      district: district?.district ?? "",
 
       villageId: "",
       village: "",
+
+      postalCode: "",
     }));
 
     setVillages([]);
 
-    if (!selectedDistrict) return;
-
-    try {
-      const res = await getVillages(selectedDistrict.id);
-      setVillages(res.data);
-    } catch (error) {
-      console.error(error);
+    if (districtId) {
+      await loadVillages(districtId);
     }
   };
 
-  const handleVillageChange = (e) => {
-    const villageId = e.target.value;
+  const handleVillageChange = (event) => {
+    const villageId = event.target.value;
 
-    const selectedVillage = villages.find(
-      (village) => village.id === villageId,
-    );
+    const village = villages.find((item) => item.code === villageId);
 
     setForm((prev) => ({
       ...prev,
 
-      villageId: selectedVillage?.id ?? "",
-      village: selectedVillage?.name ?? "",
+      villageId,
+      village: village?.village ?? "",
+
+      postalCode: village?.postalCode ?? "",
     }));
   };
 
-  const resetForm = () => {
-    setForm(createInitialForm());
+  const handleChange = (event) => {
+    const { name, value, type, checked } = event.target;
 
-    setCities([]);
-    setDistricts([]);
-    setVillages([]);
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
+
+  const initializeRegion = useCallback(
+    async (initialData = {}) => {
+      if (!initialData?.provinceId) {
+        return;
+      }
+
+      setForm(createInitialForm(initialData));
+
+      const provinceId = initialData.provinceId;
+      const cityId = initialData.cityId;
+      const districtId = initialData.districtId;
+      const villageId = initialData.villageId;
+
+      const cityData = await loadCities(provinceId);
+
+      if (!cityId) {
+        return;
+      }
+
+      const city = cityData.find((item) => item.code === cityId);
+
+      const districtData = await loadDistricts(cityId);
+
+      if (!districtId) {
+        return;
+      }
+
+      const district = districtData.find((item) => item.code === districtId);
+
+      const villageData = await loadVillages(districtId);
+
+      if (!villageId) {
+        return;
+      }
+
+      const village = villageData.find((item) => item.code === villageId);
+
+      setForm((prev) => ({
+        ...prev,
+
+        provinceId,
+        province:
+          initialData.province ||
+          provinces.find((item) => item.code === provinceId)?.province ||
+          "",
+
+        cityId,
+        city: initialData.city || city?.regency || "",
+
+        districtId,
+        district: initialData.district || district?.district || "",
+
+        villageId,
+        village: initialData.village || village?.village || "",
+
+        postalCode: initialData.postalCode || village?.postalCode || "",
+      }));
+    },
+    [loadCities, loadDistricts, loadVillages, provinces],
+  );
 
   return {
     form,
     setForm,
-    resetForm,
 
-    initializeRegion,
     provinces,
     cities,
     districts,
     villages,
 
-    handleChange,
-    handleProvinceChange,
-    handleCityChange,
-    handleDistrictChange,
-    handleVillageChange,
+    loading,
+
+    onChange: handleChange,
+    onProvinceChange: handleProvinceChange,
+    onCityChange: handleCityChange,
+    onDistrictChange: handleDistrictChange,
+    onVillageChange: handleVillageChange,
+
+    initializeRegion,
   };
 }

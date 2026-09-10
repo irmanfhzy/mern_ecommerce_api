@@ -24,24 +24,35 @@ const verifySignature = ({
   return signature === signature_key;
 };
 
-export const createPayment = async ({ orderId, totalPrice, items }) => {
+export const createPayment = async ({
+  orderId,
+  totalPrice,
+  items,
+  shippingPrice,
+}) => {
+  const itemDetails = items.map((item) => ({
+    id: item.variantId.toString(),
+    price: item.sellingPrice,
+    quantity: item.quantity,
+    name: item.productName,
+  }));
+
+  itemDetails.push({
+    id: "SHIPPING",
+    price: shippingPrice,
+    quantity: 1,
+    name: "Shipping",
+  });
+
   const parameter = {
     transaction_details: {
       order_id: orderId.toString(),
       gross_amount: totalPrice,
     },
-
-    item_details: items.map((item) => ({
-      id: item.variantId.toString(),
-      price: item.sellingPrice,
-      quantity: item.quantity,
-      name: item.productName,
-    })),
+    item_details: itemDetails,
   };
 
-  const transaction = await snap.createTransaction(parameter);
-
-  return transaction;
+  return await snap.createTransaction(parameter);
 };
 
 export const handlePaymentNotification = async (notification) => {

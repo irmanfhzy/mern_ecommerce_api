@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+
 import { useNavigate, useParams } from "react-router-dom";
 
 import { getOrderByIdForAdmin } from "../../services/order.service";
@@ -10,14 +11,23 @@ import { PAYMENT_METHOD } from "@ecommerce/shared/constants";
 import PATHS from "../../constants/paths";
 
 import AddressCard from "../../components/user/AddressCard";
+
 import OrderItemCard from "../../components/user/OrderItemCard";
+
 import Button from "../../components/common/Button";
+
 import Loading from "../../components/common/Loading";
 
 function formatDate(date) {
   if (!date) return "-";
 
-  return new Date(date).toLocaleString("id-ID", {
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "-";
+  }
+
+  return parsedDate.toLocaleString("id-ID", {
     dateStyle: "long",
     timeStyle: "short",
   });
@@ -31,14 +41,16 @@ export default function AdminOrderDetail() {
   const [loadingPage, setLoadingPage] = useState(true);
 
   const orderItems = useMemo(() => {
-    return order?.items?.map((item) => ({
-      variantId: item.variantId,
-      productName: item.productName,
-      variantImage: item.variantImages?.[0]?.url,
-      attributes: item.variantAttributes,
-      sellingPrice: item.sellingPrice,
-      quantity: item.quantity,
-    }));
+    return (
+      order?.items?.map((item) => ({
+        variantId: item.variantId,
+        productName: item.productName,
+        variantImage: item.variantImages?.[0]?.url,
+        attributes: item.variantAttributes,
+        sellingPrice: item.sellingPrice,
+        quantity: item.quantity,
+      })) ?? []
+    );
   }, [order]);
 
   useEffect(() => {
@@ -69,15 +81,12 @@ export default function AdminOrderDetail() {
     switch (order.paymentMethod) {
       case PAYMENT_METHOD.COD:
         return "Cash On Delivery";
-
       case PAYMENT_METHOD.BANK_TRANSFER:
         return "Bank Transfer";
-
       case PAYMENT_METHOD.E_WALLET:
         return "E-Wallet";
-
       default:
-        return order.paymentMethod;
+        return order.paymentMethod || "-";
     }
   }, [order]);
 
@@ -92,6 +101,18 @@ export default function AdminOrderDetail() {
       </div>
     );
   }
+
+  const shippingPrice = order.shipping?.price ?? null;
+
+  const subtotal = order.items.reduce(
+    (total, item) => total + item.sellingPrice * item.quantity,
+    0,
+  );
+
+  const totalItems = order.items.reduce(
+    (total, item) => total + item.quantity,
+    0,
+  );
 
   return (
     <div className="mx-auto max-w-6xl p-6">
@@ -111,19 +132,16 @@ export default function AdminOrderDetail() {
             <div className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
                 <p className="text-gray-500">Name</p>
-
                 <p className="font-medium">{order.userId?.name || "-"}</p>
               </div>
 
               <div>
                 <p className="text-gray-500">Email</p>
-
                 <p className="font-medium">{order.userId?.email || "-"}</p>
               </div>
 
               <div>
                 <p className="text-gray-500">Phone</p>
-
                 <p className="font-medium">{order.userId?.phone || "-"}</p>
               </div>
             </div>
@@ -132,7 +150,45 @@ export default function AdminOrderDetail() {
           <section className="rounded-2xl border bg-white p-6">
             <h2 className="mb-4 text-lg font-semibold">Shipping Address</h2>
 
-            <AddressCard address={order.shippingAddress} selectable={false} />
+            {order.shippingAddress ? (
+              <AddressCard address={order.shippingAddress} selectable={false} />
+            ) : (
+              <p className="text-sm text-gray-500">
+                Shipping address unavailable.
+              </p>
+            )}
+          </section>
+
+          <section className="rounded-2xl border bg-white p-6">
+            <h2 className="mb-4 text-lg font-semibold">Shipping Information</h2>
+
+            <div className="grid gap-4 text-sm sm:grid-cols-2">
+              <div>
+                <p className="text-gray-500">Courier</p>
+                <p className="font-medium">
+                  {order.shipping?.courierName || "-"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Service</p>
+                <p className="font-medium">
+                  {order.shipping?.serviceName || "-"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Shipping Cost</p>
+                <p className="font-medium">
+                  {shippingPrice !== null ? formatPrice(shippingPrice) : "-"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Estimated Delivery</p>
+                <p className="font-medium">{order.shipping?.etd || "-"}</p>
+              </div>
+            </div>
           </section>
 
           <section className="rounded-2xl border bg-white p-6">
@@ -141,31 +197,28 @@ export default function AdminOrderDetail() {
             <div className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
                 <p className="text-gray-500">Payment Method</p>
-
                 <p className="font-medium">{paymentMethodLabel}</p>
               </div>
 
               <div>
                 <p className="text-gray-500">Payment Status</p>
-
-                <p className="font-medium uppercase">{order.paymentStatus}</p>
+                <p className="font-medium uppercase">
+                  {order.paymentStatus || "-"}
+                </p>
               </div>
 
               <div>
                 <p className="text-gray-500">Paid At</p>
-
                 <p className="font-medium">{formatDate(order.paidAt)}</p>
               </div>
 
               <div>
                 <p className="text-gray-500">Completed At</p>
-
                 <p className="font-medium">{formatDate(order.completedAt)}</p>
               </div>
 
               <div>
                 <p className="text-gray-500">Cancelled At</p>
-
                 <p className="font-medium">{formatDate(order.cancelledAt)}</p>
               </div>
             </div>
@@ -174,7 +227,11 @@ export default function AdminOrderDetail() {
           <section className="rounded-2xl border bg-white p-6">
             <h2 className="mb-6 text-lg font-semibold">Order Items</h2>
 
-            <OrderItemCard items={orderItems} />
+            {orderItems.length > 0 ? (
+              <OrderItemCard items={orderItems} />
+            ) : (
+              <p className="text-sm text-gray-500">No items found.</p>
+            )}
           </section>
         </div>
 
@@ -184,21 +241,23 @@ export default function AdminOrderDetail() {
           <div className="space-y-4">
             <div className="flex justify-between">
               <span>Total Items</span>
-
-              <span>
-                {order.items.reduce((total, item) => total + item.quantity, 0)}
-              </span>
+              <span>{totalItems}</span>
             </div>
 
             <div className="flex justify-between">
               <span>Subtotal</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
 
-              <span>{formatPrice(order.totalPrice)}</span>
+            <div className="flex justify-between">
+              <span>Shipping</span>
+              <span>
+                {shippingPrice !== null ? formatPrice(shippingPrice) : "-"}
+              </span>
             </div>
 
             <div className="flex justify-between border-t pt-4 text-lg font-bold">
               <span>Total</span>
-
               <span>{formatPrice(order.totalPrice)}</span>
             </div>
           </div>
@@ -216,23 +275,20 @@ export default function AdminOrderDetail() {
           <div className="mt-8 space-y-3 border-t pt-6 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-500">Order Status</span>
-
               <span className="font-medium capitalize">
-                {order.ordertStatus}
+                {order.orderStatus || "-"}
               </span>
             </div>
 
             <div className="flex justify-between">
               <span className="text-gray-500">Payment Status</span>
-
               <span className="font-medium capitalize">
-                {order.paymentStatus}
+                {order.paymentStatus || "-"}
               </span>
             </div>
 
             <div className="flex justify-between">
               <span className="text-gray-500">Payment Method</span>
-
               <span className="font-medium">{paymentMethodLabel}</span>
             </div>
           </div>

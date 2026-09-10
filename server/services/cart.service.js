@@ -5,7 +5,7 @@ import * as checker from "../utils/errorChecker.js";
 
 const cartPopulate = {
   path: "items.variantId",
-  select: "attributes price stock images productId",
+  select: "attributes sellingPrice stock images weight productId",
   populate: {
     path: "productId",
     select: "name slug brand image isActive",

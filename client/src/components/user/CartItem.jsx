@@ -22,7 +22,6 @@ export default function CartItem({
 
   return (
     <div className="flex flex-wrap items-start gap-5 py-4 border-b sm:flex-nowrap sm:gap-4">
-      {/* Checkbox */}
       <div className="pt-8">
         <input
           type="checkbox"
@@ -32,14 +31,12 @@ export default function CartItem({
         />
       </div>
 
-      {/* Image */}
       <img
         src={getImageUrl(variant.images?.[0] || product.images?.[0])}
         alt={variant.name}
         className="w-20 h-20 rounded-xl border object-cover shrink-0 sm:w-24 sm:h-24"
       />
 
-      {/* Product Info */}
       <div className="flex-1 min-w-[calc(100%-7rem)] sm:min-w-0">
         <div className="flex flex-col gap-2">
           <Badge label={product.brand} />
@@ -73,7 +70,6 @@ export default function CartItem({
         </div>
       </div>
 
-      {/* Actions */}
       <div className="w-full flex items-center justify-between gap-4 sm:w-auto sm:flex-col sm:items-end sm:justify-between">
         <QuantitySelector
           quantity={item.quantity}

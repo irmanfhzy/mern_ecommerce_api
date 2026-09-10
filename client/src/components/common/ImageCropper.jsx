@@ -23,7 +23,6 @@ export default function ImageCropper({
         </div>
       )}
 
-      {/* Crop Area */}
       <div className="relative h-96 overflow-hidden rounded-2xl border bg-gray-100">
         {image ? (
           <Cropper
@@ -47,7 +46,6 @@ export default function ImageCropper({
         )}
       </div>
 
-      {/* Zoom */}
       {image && (
         <div>
           <div className="mb-2 flex items-center justify-between">

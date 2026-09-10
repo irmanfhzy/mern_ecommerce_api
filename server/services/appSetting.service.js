@@ -74,7 +74,6 @@ export const saveAppSetting = async (body, files) => {
       runValidators: true,
     });
 
-    // Hapus logo lama setelah DB berhasil diupdate
     if (
       (files?.logo?.[0] || removeLogo === "true") &&
       oldSetting?.logo?.publicId
@@ -82,7 +81,6 @@ export const saveAppSetting = async (body, files) => {
       await cloudinary.uploader.destroy(oldSetting.logo.publicId);
     }
 
-    // Hapus favicon lama setelah DB berhasil diupdate
     if (
       (files?.favicon?.[0] || removeFavicon === "true") &&
       oldSetting?.favicon?.publicId
@@ -92,7 +90,6 @@ export const saveAppSetting = async (body, files) => {
 
     return newAppSetting;
   } catch (error) {
-    // Hapus upload baru jika update DB gagal
     if (updatedData.logo?.publicId) {
       await cloudinary.uploader.destroy(updatedData.logo.publicId);
     }

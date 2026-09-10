@@ -5,7 +5,6 @@ import AddressForm from "../../components/common/AddressForm";
 import Button from "../../components/common/Button";
 
 import useIndonesiaRegion from "../../hooks/useIndonesiaRegion";
-
 import { addAddress } from "../../services/user.service";
 
 export default function AddAddress() {
@@ -19,12 +18,11 @@ export default function AddAddress() {
     cities,
     districts,
     villages,
-
-    handleChange,
-    handleProvinceChange,
-    handleCityChange,
-    handleDistrictChange,
-    handleVillageChange,
+    onChange,
+    onProvinceChange,
+    onCityChange,
+    onDistrictChange,
+    onVillageChange,
   } = useIndonesiaRegion();
 
   const handleSubmit = async (e) => {
@@ -61,11 +59,11 @@ export default function AddAddress() {
           cities={cities}
           districts={districts}
           villages={villages}
-          onChange={handleChange}
-          onProvinceChange={handleProvinceChange}
-          onCityChange={handleCityChange}
-          onDistrictChange={handleDistrictChange}
-          onVillageChange={handleVillageChange}
+          onChange={onChange}
+          onProvinceChange={onProvinceChange}
+          onCityChange={onCityChange}
+          onDistrictChange={onDistrictChange}
+          onVillageChange={onVillageChange}
         />
 
         <div className="flex justify-end gap-3 border-t pt-6">

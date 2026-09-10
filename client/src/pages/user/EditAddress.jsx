@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
+
 import { useNavigate, useParams } from "react-router-dom";
 
 import AddressForm from "../../components/common/AddressForm";
 import Button from "../../components/common/Button";
 import Loading from "../../components/common/Loading";
-
 import useIndonesiaRegion from "../../hooks/useIndonesiaRegion";
 
 import { getProfile, updateAddress } from "../../services/user.service";
@@ -18,38 +18,43 @@ export default function EditAddress() {
 
   const {
     form,
-    setForm,
     initializeRegion,
     provinces,
     cities,
     districts,
     villages,
-
-    handleChange,
-    handleProvinceChange,
-    handleCityChange,
-    handleDistrictChange,
-    handleVillageChange,
+    onChange,
+    onProvinceChange,
+    onCityChange,
+    onDistrictChange,
+    onVillageChange,
   } = useIndonesiaRegion();
 
   useEffect(() => {
-    try {
-      setLoadingPage(true);
-      const fetchUser = async () => {
+    const fetchUser = async () => {
+      try {
+        setLoadingPage(true);
+
         const res = await getProfile();
+
         const address = res.data.data.addresses.find(
-          (address) => address._id === addressId,
+          (item) => item._id === addressId,
         );
-        setForm(address);
+
+        if (!address) {
+          throw new Error("Address not found.");
+        }
+
         await initializeRegion(address);
-      };
-      fetchUser();
-    } catch (error) {
-      alert(error.response?.data?.message || error.message);
-    } finally {
-      setLoadingPage(false);
-    }
-  }, [addressId, setForm, initializeRegion]);
+      } catch (error) {
+        alert(error.response?.data?.message || error.message);
+      } finally {
+        setLoadingPage(false);
+      }
+    };
+
+    fetchUser();
+  }, [addressId, initializeRegion]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -89,11 +94,11 @@ export default function EditAddress() {
           cities={cities}
           districts={districts}
           villages={villages}
-          onChange={handleChange}
-          onProvinceChange={handleProvinceChange}
-          onCityChange={handleCityChange}
-          onDistrictChange={handleDistrictChange}
-          onVillageChange={handleVillageChange}
+          onChange={onChange}
+          onProvinceChange={onProvinceChange}
+          onCityChange={onCityChange}
+          onDistrictChange={onDistrictChange}
+          onVillageChange={onVillageChange}
         />
 
         <div className="flex justify-end gap-3 border-t pt-6">

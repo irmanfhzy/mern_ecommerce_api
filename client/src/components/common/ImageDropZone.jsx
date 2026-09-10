@@ -52,8 +52,6 @@ export default function ImageDropZone({
 
   const handleInputChange = (e) => {
     handleFile(e.target.files?.[0]);
-
-    // supaya file yang sama tetap bisa dipilih lagi
     e.target.value = "";
   };
 

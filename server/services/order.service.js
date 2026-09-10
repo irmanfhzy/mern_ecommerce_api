@@ -3,9 +3,11 @@ import mongoose from "mongoose";
 import Order from "../models/order.model.js";
 import Variant from "../models/variant.model.js";
 import Cart from "../models/cart.model.js";
+import AppSetting from "../models/appSetting.model.js";
 
 import { createInventoryHistory } from "./inventoryHistory.service.js";
 import { createPayment } from "./payment.service.js";
+import * as shippingService from "./shipping.service.js";
 
 import generateOrderNumber from "../utils/orderNumberGenerator.js";
 import AppError from "../utils/AppError.js";
@@ -19,10 +21,22 @@ import {
 } from "@ecommerce/shared/constants/index.js";
 
 export const createOrder = async (userId, body) => {
-  const { items, totalPrice, shippingAddress } = body;
+  const { items, totalPrice, shippingAddress, shipping } = body;
 
   if (!items || items.length === 0) {
     throw new AppError("Items cannot be empty", 400);
+  }
+
+  if (!shipping) {
+    throw new AppError("Shipping information is required", 400);
+  }
+
+  if (!shipping.courierCode) {
+    throw new AppError("Shipping courier is required", 400);
+  }
+
+  if (!shipping.serviceCode) {
+    throw new AppError("Shipping service is required", 400);
   }
 
   const session = await mongoose.startSession();
@@ -32,18 +46,46 @@ export const createOrder = async (userId, body) => {
 
     const { orderId, orderNumber } = generateOrderNumber();
 
-    let calculatedTotalPrice = 0;
+    let calculatedSubtotal = 0;
 
     const orderItems = [];
 
+    /*
+     * Get store address from AppSetting.
+     * AppSetting.address.postalCode is the origin postal code.
+     */
+    const appSetting = await AppSetting.findOne().select("address").lean();
+
+    checker.checkDocument(appSetting, "App setting not found", 404);
+
+    const originPostalCode = Number(appSetting.address?.postalCode);
+
+    const destinationPostalCode = Number(shippingAddress?.postalCode);
+
+    if (
+      !Number.isFinite(originPostalCode) ||
+      !Number.isFinite(destinationPostalCode)
+    ) {
+      throw new AppError("Invalid origin or destination postal code", 400);
+    }
+
+    /*
+     * Check stock and calculate subtotal from database.
+     */
     for (const item of items) {
+      if (!item.variantId || !item.quantity) {
+        throw new AppError("Invalid order item", 400);
+      }
+
       const variant = await Variant.findOneAndUpdate(
         {
           _id: item.variantId,
           stock: { $gte: item.quantity },
         },
         {
-          $inc: { stock: -item.quantity },
+          $inc: {
+            stock: -item.quantity,
+          },
         },
         {
           returnDocument: "after",
@@ -57,7 +99,7 @@ export const createOrder = async (userId, body) => {
         400,
       );
 
-      calculatedTotalPrice += variant.sellingPrice * item.quantity;
+      calculatedSubtotal += variant.sellingPrice * item.quantity;
 
       orderItems.push({
         productId: variant.productId._id,
@@ -77,6 +119,42 @@ export const createOrder = async (userId, body) => {
       });
     }
 
+    /*
+     * Re-check shipping price directly from Biteship.
+     *
+     * Do NOT trust shipping.price sent by frontend.
+     */
+    const rates = await shippingService.getShippingRates(userId, {
+      items,
+      originPostalCode,
+      destinationPostalCode,
+      couriers: shipping.courierCode,
+    });
+
+    const shippingRate = rates?.pricing?.find(
+      (rate) =>
+        rate.courier_code === shipping.courierCode &&
+        rate.courier_service_code === shipping.serviceCode,
+    );
+
+    if (!shippingRate) {
+      throw new AppError(
+        "Selected shipping service is no longer available",
+        400,
+      );
+    }
+
+    const shippingPrice = Number(shippingRate.price);
+
+    if (!Number.isFinite(shippingPrice) || shippingPrice < 0) {
+      throw new AppError("Invalid shipping price", 400);
+    }
+
+    /*
+     * Backend is authoritative for the final total.
+     */
+    const calculatedTotalPrice = calculatedSubtotal + shippingPrice;
+
     if (totalPrice !== calculatedTotalPrice) {
       throw new AppError(
         "Order total has changed. Please review your cart.",
@@ -84,19 +162,42 @@ export const createOrder = async (userId, body) => {
       );
     }
 
+    /*
+     * Save shipping information returned by Biteship,
+     * not the shipping data sent by frontend.
+     */
+    const shippingData = {
+      courierCode: shippingRate.courier_code,
+      courierName: shippingRate.courier_name,
+      serviceCode: shippingRate.courier_service_code,
+      serviceName: shippingRate.courier_service_name,
+      price: shippingPrice,
+      etd: shippingRate.duration,
+    };
+
     const order = new Order({
       _id: orderId,
       orderNumber,
       userId,
+
       items: orderItems,
+
       totalPrice: calculatedTotalPrice,
+
       paymentStatus: PAYMENT_STATUS.PENDING,
       orderStatus: ORDER_STATUS.PENDING,
+
       shippingAddress,
+      shipping: shippingData,
     });
 
-    await order.save({ session });
+    await order.save({
+      session,
+    });
 
+    /*
+     * Create inventory history.
+     */
     for (const item of orderItems) {
       await createInventoryHistory({
         variantId: item.variantId,
@@ -108,26 +209,46 @@ export const createOrder = async (userId, body) => {
       });
     }
 
-    const cart = await Cart.findOne({ userId }).session(session);
+    /*
+     * Remove only the purchased quantity from cart.
+     */
+    const cart = await Cart.findOne({
+      userId,
+    }).session(session);
 
     checker.checkDocument(cart, "Cart not found", 404);
 
-    cart.items = cart.items.filter(
-      (item) =>
-        !order.items.some(
-          (orderItem) =>
-            orderItem.variantId.toString() === item.variantId.toString(),
-        ),
-    );
+    for (const orderItem of order.items) {
+      const cartItem = cart.items.find(
+        (item) => item.variantId.toString() === orderItem.variantId.toString(),
+      );
 
-    await cart.save({ session });
+      if (!cartItem) {
+        continue;
+      }
+
+      cartItem.quantity -= orderItem.quantity;
+    }
+
+    /*
+     * Remove cart items whose quantity has reached zero.
+     */
+    cart.items = cart.items.filter((item) => item.quantity > 0);
+
+    await cart.save({
+      session,
+    });
 
     await session.commitTransaction();
 
+    /*
+     * Create payment after transaction succeeds.
+     */
     const payment = await createPayment({
       orderId: order._id,
       totalPrice: order.totalPrice,
       items: order.items,
+      shippingPrice,
     });
 
     return {

@@ -137,9 +137,7 @@ const rules = {
     rates: {
       originPostalCode: "number",
       destinationPostalCode: "number",
-      weight: "number",
       couriers: "lowercase",
-      value: "number",
     },
   },
 };

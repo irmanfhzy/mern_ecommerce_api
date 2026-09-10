@@ -127,11 +127,10 @@ const requestBodySchemas = {
   shipping: {
     rates: {
       required: [
+        "items",
         "originPostalCode",
         "destinationPostalCode",
-        "weight",
         "couriers",
-        "value",
       ],
     },
   },

@@ -15,7 +15,6 @@ export default function ProductGallery({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Main Image */}
       <div className="w-full overflow-hidden rounded-2xl border bg-white">
         {selectedImage && (
           <img
@@ -26,7 +25,6 @@ export default function ProductGallery({
         )}
       </div>
 
-      {/* Image Selector */}
       <div className="flex w-full flex-wrap gap-3">
         {images.map((img, i) => (
           <button

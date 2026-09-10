@@ -133,6 +133,33 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
 
+    shipping: {
+      courierCode: {
+        type: String,
+        required: true,
+      },
+      courierName: {
+        type: String,
+        required: true,
+      },
+      serviceCode: {
+        type: String,
+        required: true,
+      },
+      serviceName: {
+        type: String,
+        required: true,
+      },
+      price: {
+        type: Number,
+        required: true,
+        min: 0,
+      },
+      etd: {
+        type: String,
+      },
+    },
+
     paidAt: {
       type: Date,
       default: null,

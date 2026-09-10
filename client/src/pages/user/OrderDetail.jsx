@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useContext } from "react";
+
 import { useNavigate, useParams } from "react-router-dom";
 
 import { ConfirmationDialogContext } from "../../contexts/ConfirmationDialogContext";
@@ -8,16 +9,27 @@ import { getOrderById, cancelOrder } from "../../services/order.service";
 import formatPrice from "../../utils/priceFormatter";
 
 import { ORDER_STATUS, PAYMENT_METHOD } from "@ecommerce/shared/constants";
+
 import AddressCard from "../../components/user/AddressCard";
+
 import OrderItemCard from "../../components/user/OrderItemCard";
+
 import Button from "../../components/common/Button";
+
 import Loading from "../../components/common/Loading";
+
 import PATHS from "../../constants/paths";
 
 function formatDate(date) {
   if (!date) return "-";
 
-  return new Date(date).toLocaleString("id-ID", {
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "-";
+  }
+
+  return parsedDate.toLocaleString("id-ID", {
     dateStyle: "long",
     timeStyle: "short",
   });
@@ -26,6 +38,7 @@ function formatDate(date) {
 export default function OrderDetail() {
   const navigate = useNavigate();
   const { orderId } = useParams();
+
   const { openDialog, closeDialog } = useContext(ConfirmationDialogContext);
 
   const [order, setOrder] = useState(null);
@@ -33,27 +46,32 @@ export default function OrderDetail() {
   const [loadingButton, setLoadingButton] = useState(false);
 
   const orderItems = useMemo(() => {
-    return order?.items?.map((item) => ({
-      variantId: item.variantId,
-      productName: item.productName,
-      variantImage: item.variantImages?.[0]?.url,
-      attributes: item.variantAttributes,
-      sellingPrice: item.sellingPrice,
-      quantity: item.quantity,
-    }));
+    return (
+      order?.items?.map((item) => ({
+        variantId: item.variantId,
+        productName: item.productName,
+        variantImage: item.variantImages?.[0]?.url,
+        attributes: item.variantAttributes,
+        sellingPrice: item.sellingPrice,
+        quantity: item.quantity,
+      })) ?? []
+    );
   }, [order]);
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
         setLoadingPage(true);
+
         const res = await getOrderById(orderId);
 
         setOrder(res.data.data);
       } catch (error) {
         alert(error.response?.data?.message || error.message);
 
-        navigate("/orders", { replace: true });
+        navigate(PATHS.USER.MY_ORDERS, {
+          replace: true,
+        });
       } finally {
         setLoadingPage(false);
       }
@@ -63,6 +81,8 @@ export default function OrderDetail() {
   }, [orderId, navigate]);
 
   const handleCancelOrder = async () => {
+    if (!order?._id) return;
+
     try {
       setLoadingButton(true);
 
@@ -89,6 +109,23 @@ export default function OrderDetail() {
     );
   }
 
+  const shippingPrice = order.shipping?.price ?? null;
+
+  const subtotal = order.items.reduce(
+    (total, item) => total + item.sellingPrice * item.quantity,
+    0,
+  );
+
+  const totalItems = order.items.reduce(
+    (total, item) => total + item.quantity,
+    0,
+  );
+
+  const paymentStatus = order.paymentStatus?.toUpperCase() ?? "-";
+
+  const paymentMethod =
+    PAYMENT_METHOD[order.paymentMethod] ?? order.paymentMethod ?? "-";
+
   return (
     <div className="mx-auto max-w-6xl p-6">
       <div className="mb-8 flex items-center justify-start gap-4">
@@ -96,7 +133,7 @@ export default function OrderDetail() {
           <h1 className="text-3xl font-bold">Order Detail</h1>
 
           <p className="mt-2 text-gray-500">
-            Order Number : {order.orderNumber}
+            Order Number : {order.orderNumber || "-"}
           </p>
 
           <p className="text-gray-500">
@@ -110,7 +147,49 @@ export default function OrderDetail() {
           <section className="rounded-2xl border bg-white p-6">
             <h2 className="mb-4 text-lg font-semibold">Shipping Address</h2>
 
-            <AddressCard address={order.shippingAddress} selectable={false} />
+            {order.shippingAddress ? (
+              <AddressCard address={order.shippingAddress} selectable={false} />
+            ) : (
+              <p className="text-sm text-gray-500">
+                Shipping address unavailable.
+              </p>
+            )}
+          </section>
+
+          <section className="rounded-2xl border bg-white p-6">
+            <h2 className="mb-4 text-lg font-semibold">Shipping Information</h2>
+
+            <div className="grid gap-4 text-sm sm:grid-cols-2">
+              <div>
+                <p className="text-gray-500">Courier</p>
+
+                <p className="font-medium">
+                  {order.shipping?.courierName || "-"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Service</p>
+
+                <p className="font-medium">
+                  {order.shipping?.serviceName || "-"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Shipping Cost</p>
+
+                <p className="font-medium">
+                  {shippingPrice !== null ? formatPrice(shippingPrice) : "-"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-gray-500">Estimated Delivery</p>
+
+                <p className="font-medium">{order.shipping?.etd || "-"}</p>
+              </div>
+            </div>
           </section>
 
           <section className="rounded-2xl border bg-white p-6">
@@ -120,17 +199,13 @@ export default function OrderDetail() {
               <div>
                 <p className="text-gray-500">Payment Method</p>
 
-                <p className="font-medium">
-                  {PAYMENT_METHOD[order.paymentMethod] ?? order.paymentMethod}
-                </p>
+                <p className="font-medium">{paymentMethod}</p>
               </div>
 
               <div>
                 <p className="text-gray-500">Payment Status</p>
 
-                <p className="font-medium">
-                  {order.paymentStatus.toUpperCase()}
-                </p>
+                <p className="font-medium">{paymentStatus}</p>
               </div>
 
               <div>
@@ -156,30 +231,38 @@ export default function OrderDetail() {
           <section className="rounded-2xl border bg-white p-6">
             <h2 className="mb-6 text-lg font-semibold">Order Items</h2>
 
-            <OrderItemCard items={orderItems} />
+            {orderItems.length > 0 ? (
+              <OrderItemCard items={orderItems} />
+            ) : (
+              <p className="text-sm text-gray-500">No items found.</p>
+            )}
           </section>
         </div>
+
         <aside className="h-fit rounded-2xl border bg-white p-6">
           <h2 className="mb-6 text-lg font-semibold">Order Summary</h2>
 
           <div className="space-y-4">
             <div className="flex justify-between">
               <span>Total Items</span>
-
-              <span>
-                {order.items.reduce((total, item) => total + item.quantity, 0)}
-              </span>
+              <span>{totalItems}</span>
             </div>
 
             <div className="flex justify-between">
               <span>Subtotal</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
 
-              <span>{formatPrice(order.totalPrice)}</span>
+            <div className="flex justify-between">
+              <span>Shipping</span>
+
+              <span>
+                {shippingPrice !== null ? formatPrice(shippingPrice) : "-"}
+              </span>
             </div>
 
             <div className="flex justify-between border-t pt-4 text-lg font-bold">
               <span>Total</span>
-
               <span>{formatPrice(order.totalPrice)}</span>
             </div>
           </div>
@@ -196,7 +279,7 @@ export default function OrderDetail() {
                     message: "Are you sure you want to cancel this order?",
                     confirmVariant: "danger",
                     cancelVariant: "ghost",
-                    onConfirm: () => handleCancelOrder(),
+                    onConfirm: handleCancelOrder,
                     loading: loadingButton,
                   })
                 }
@@ -214,12 +297,34 @@ export default function OrderDetail() {
             </Button>
           </div>
 
-          <div className="mt-8 border-t pt-6 text-sm space-y-3">
+          <div className="mt-8 space-y-3 border-t pt-6 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Courier</span>
+
+              <span className="font-medium">
+                {order.shipping?.courierName || "-"}
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-gray-500">Service</span>
+
+              <span className="font-medium">
+                {order.shipping?.serviceName || "-"}
+              </span>
+            </div>
+
+            <div className="flex justify-between">
+              <span className="text-gray-500">Estimated Delivery</span>
+
+              <span className="font-medium">{order.shipping?.etd || "-"}</span>
+            </div>
+
             <div className="flex justify-between">
               <span className="text-gray-500">Order Status</span>
 
               <span className="font-medium capitalize">
-                {order.orderStatus}
+                {order.orderStatus || "-"}
               </span>
             </div>
 
@@ -227,16 +332,14 @@ export default function OrderDetail() {
               <span className="text-gray-500">Payment Status</span>
 
               <span className="font-medium capitalize">
-                {order.paymentStatus}
+                {order.paymentStatus || "-"}
               </span>
             </div>
 
             <div className="flex justify-between">
               <span className="text-gray-500">Payment Method</span>
 
-              <span className="font-medium capitalize">
-                {PAYMENT_METHOD[order.paymentMethod] ?? order.paymentMethod}
-              </span>
+              <span className="font-medium capitalize">{paymentMethod}</span>
             </div>
           </div>
         </aside>

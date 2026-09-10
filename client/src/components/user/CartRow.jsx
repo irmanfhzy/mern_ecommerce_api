@@ -33,7 +33,6 @@ export default function CartRow({
   };
 
   const openPopover = async () => {
-    // Toggle
     if (isOpen) {
       closePopover();
       return;

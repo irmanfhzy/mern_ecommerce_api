@@ -18,7 +18,6 @@ export default function AppSetting() {
 
   const {
     form: address,
-    setForm: setAddress,
     initializeRegion,
 
     provinces,
@@ -26,11 +25,11 @@ export default function AppSetting() {
     districts,
     villages,
 
-    handleChange: handleAddressChange,
-    handleProvinceChange,
-    handleCityChange,
-    handleDistrictChange,
-    handleVillageChange,
+    onChange: handleAddressChange,
+    onProvinceChange,
+    onCityChange,
+    onDistrictChange,
+    onVillageChange,
   } = useIndonesiaRegion();
 
   const [form, setForm] = useState({
@@ -51,27 +50,33 @@ export default function AppSetting() {
   const [removeFavicon, setRemoveFavicon] = useState(false);
 
   useEffect(() => {
-    if (!appSetting) return;
+    const initialize = async () => {
+      if (!appSetting) {
+        setLoadingPage(false);
+        return;
+      }
 
-    setLoadingPage(true);
+      setLoadingPage(true);
 
-    setForm({
-      appName: appSetting.appName,
-      appDescription: appSetting.appDescription,
-      about: appSetting.about,
-      contact: appSetting.contact ?? [],
-      socialMedia: appSetting.socialMedia ?? [],
-      logo: appSetting.logo,
-      favicon: appSetting.favicon,
-    });
+      setForm({
+        appName: appSetting.appName ?? "",
+        appDescription: appSetting.appDescription ?? "",
+        about: appSetting.about ?? "",
+        contact: appSetting.contact ?? [],
+        socialMedia: appSetting.socialMedia ?? [],
+        logo: appSetting.logo ?? null,
+        favicon: appSetting.favicon ?? null,
+      });
 
-    if (appSetting.address) {
-      setAddress(appSetting.address);
-      initializeRegion(appSetting.address);
-    }
+      if (appSetting.address) {
+        await initializeRegion(appSetting.address);
+      }
 
-    setLoadingPage(false);
-  }, [appSetting, initializeRegion, setAddress]);
+      setLoadingPage(false);
+    };
+
+    initialize();
+  }, [appSetting, initializeRegion]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -250,13 +255,13 @@ export default function AppSetting() {
             districts={districts}
             villages={villages}
             onChange={handleAddressChange}
-            onProvinceChange={handleProvinceChange}
-            onCityChange={handleCityChange}
-            onDistrictChange={handleDistrictChange}
-            onVillageChange={handleVillageChange}
+            onProvinceChange={onProvinceChange}
+            onCityChange={onCityChange}
+            onDistrictChange={onDistrictChange}
+            onVillageChange={onVillageChange}
+            showRecipient={false}
             showLabel={false}
             showDefault={false}
-            showRecipient={false}
           />
         </section>
 
