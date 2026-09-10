@@ -50,10 +50,6 @@ export const createOrder = async (userId, body) => {
 
     const orderItems = [];
 
-    /*
-     * Get store address from AppSetting.
-     * AppSetting.address.postalCode is the origin postal code.
-     */
     const appSetting = await AppSetting.findOne().select("address").lean();
 
     checker.checkDocument(appSetting, "App setting not found", 404);
@@ -69,9 +65,6 @@ export const createOrder = async (userId, body) => {
       throw new AppError("Invalid origin or destination postal code", 400);
     }
 
-    /*
-     * Check stock and calculate subtotal from database.
-     */
     for (const item of items) {
       if (!item.variantId || !item.quantity) {
         throw new AppError("Invalid order item", 400);
@@ -119,11 +112,6 @@ export const createOrder = async (userId, body) => {
       });
     }
 
-    /*
-     * Re-check shipping price directly from Biteship.
-     *
-     * Do NOT trust shipping.price sent by frontend.
-     */
     const rates = await shippingService.getShippingRates(userId, {
       items,
       originPostalCode,
@@ -150,9 +138,6 @@ export const createOrder = async (userId, body) => {
       throw new AppError("Invalid shipping price", 400);
     }
 
-    /*
-     * Backend is authoritative for the final total.
-     */
     const calculatedTotalPrice = calculatedSubtotal + shippingPrice;
 
     if (totalPrice !== calculatedTotalPrice) {
@@ -162,10 +147,6 @@ export const createOrder = async (userId, body) => {
       );
     }
 
-    /*
-     * Save shipping information returned by Biteship,
-     * not the shipping data sent by frontend.
-     */
     const shippingData = {
       courierCode: shippingRate.courier_code,
       courierName: shippingRate.courier_name,
@@ -195,9 +176,6 @@ export const createOrder = async (userId, body) => {
       session,
     });
 
-    /*
-     * Create inventory history.
-     */
     for (const item of orderItems) {
       await createInventoryHistory({
         variantId: item.variantId,
@@ -209,41 +187,33 @@ export const createOrder = async (userId, body) => {
       });
     }
 
-    /*
-     * Remove only the purchased quantity from cart.
-     */
     const cart = await Cart.findOne({
       userId,
     }).session(session);
 
-    checker.checkDocument(cart, "Cart not found", 404);
+    if (cart) {
+      for (const orderItem of order.items) {
+        const cartItem = cart.items.find(
+          (item) =>
+            item.variantId.toString() === orderItem.variantId.toString(),
+        );
 
-    for (const orderItem of order.items) {
-      const cartItem = cart.items.find(
-        (item) => item.variantId.toString() === orderItem.variantId.toString(),
-      );
+        if (!cartItem) {
+          continue;
+        }
 
-      if (!cartItem) {
-        continue;
+        cartItem.quantity -= orderItem.quantity;
       }
 
-      cartItem.quantity -= orderItem.quantity;
+      cart.items = cart.items.filter((item) => item.quantity > 0);
+
+      await cart.save({
+        session,
+      });
     }
-
-    /*
-     * Remove cart items whose quantity has reached zero.
-     */
-    cart.items = cart.items.filter((item) => item.quantity > 0);
-
-    await cart.save({
-      session,
-    });
 
     await session.commitTransaction();
 
-    /*
-     * Create payment after transaction succeeds.
-     */
     const payment = await createPayment({
       orderId: order._id,
       totalPrice: order.totalPrice,
