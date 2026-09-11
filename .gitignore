@@ -3,11 +3,12 @@ build/
 dist/
 coverage/
 *.log
-.env
-.env.*
 .vite/
 .vscode/
 .DS_Store
 Thumbs.db
 .vercel
-.env*
+.env
+.env.local
+.env.development
+.env.production
