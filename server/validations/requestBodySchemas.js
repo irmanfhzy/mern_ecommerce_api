@@ -4,6 +4,14 @@ const requestBodySchemas = {
       required: ["name", "email", "password", "confirmPassword"],
     },
 
+    verifyEmail: {
+      required: ["email", "otp"],
+    },
+
+    resendVerification: {
+      required: ["email"],
+    },
+
     login: {
       required: ["identifier", "password"],
     },

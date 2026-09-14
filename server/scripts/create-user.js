@@ -1,5 +1,6 @@
 import readline from "node:readline/promises";
 import dns from "node:dns";
+import "dotenv/config";
 import { stdin, stdout } from "node:process";
 import argon2 from "argon2";
 import mongoose from "mongoose";

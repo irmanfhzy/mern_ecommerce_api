@@ -3,12 +3,15 @@ import express from "express";
 import authenticate from "../middlewares/authenticator.middleware.js";
 import validateRequestBody from "../middlewares/requestBodyValidator.middleware.js";
 import normalizeRequestBody from "../middlewares/requestBodyNormalizer.middleware.js";
+import createRateLimiter from "../middlewares/rateLimit.middleware.js";
 
 import requestBodySchemas from "../validations/requestBodySchemas.js";
 import rules from "../validations/normalizerRules.js";
 
 import {
   registerController,
+  verifyEmailController,
+  resendVerificationEmailController,
   loginController,
   googleLoginController,
   refreshAccessTokenController,
@@ -23,6 +26,22 @@ router.post(
   validateRequestBody(requestBodySchemas.auth.register),
   normalizeRequestBody(rules.auth.register),
   registerController,
+);
+
+router.post(
+  "/verify-email",
+  validateRequestBody(requestBodySchemas.auth.verifyEmail),
+  verifyEmailController,
+);
+
+router.post(
+  "/resend-verification",
+  createRateLimiter({
+    seconds: 60,
+    limit: 1,
+  }),
+  validateRequestBody(requestBodySchemas.auth.resendVerification),
+  resendVerificationEmailController,
 );
 
 router.post(
