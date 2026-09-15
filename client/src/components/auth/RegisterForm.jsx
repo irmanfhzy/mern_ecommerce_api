@@ -1,7 +1,8 @@
 import { useState, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { AuthContext } from "../../contexts/AuthContext";
 import Button from "../common/Button";
+import VerifyEmailForm from "./VerifyEmailForm";
 
 export default function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -11,9 +12,13 @@ export default function RegisterForm() {
     confirmPassword: "",
   });
 
+  const [verificationEmail, setVerificationEmail] = useState(
+    sessionStorage.getItem("verificationEmail") || "",
+  );
+
   const [loading, setLoading] = useState(false);
+
   const { register } = useContext(AuthContext);
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -24,17 +29,48 @@ export default function RegisterForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       setLoading(true);
+
       await register(formData);
-      alert("Registration successful");
-      navigate("/login", { replace: true });
+
+      const resendCooldown = Date.now() + 60 * 1000;
+
+      localStorage.setItem(
+        `resendCooldown:${formData.email}`,
+        resendCooldown.toString(),
+      );
+
+      sessionStorage.setItem("verificationEmail", formData.email);
+      setVerificationEmail(formData.email);
     } catch (error) {
+      if (error.response?.status === 429) {
+        sessionStorage.setItem("verificationEmail", formData.email);
+        setVerificationEmail(formData.email);
+        alert(
+          error.response?.data?.message ||
+            "Please wait for the cooldown to finish before requesting another code.",
+        );
+        return;
+      }
       alert(error.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
+
+  if (verificationEmail) {
+    return (
+      <VerifyEmailForm
+        email={verificationEmail}
+        onBack={() => {
+          sessionStorage.removeItem("verificationEmail");
+          setVerificationEmail("");
+        }}
+      />
+    );
+  }
 
   return (
     <form

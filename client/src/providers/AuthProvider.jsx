@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import {
   register as registerApi,
+  verifyEmail as verifyEmailApi,
+  resendVerificationEmail as resendVerificationEmailApi,
   login as loginApi,
   googleLogin as googleLoginApi,
   getMe as getMeApi,
@@ -14,6 +16,14 @@ export default function AuthProvider({ children }) {
 
   const register = async (data) => {
     await registerApi(data);
+  };
+
+  const verifyEmail = async (data) => {
+    await verifyEmailApi(data);
+  };
+
+  const resendVerificationEmail = async (email) => {
+    await resendVerificationEmailApi(email);
   };
 
   const login = async (data) => {
@@ -72,6 +82,8 @@ export default function AuthProvider({ children }) {
         setUser,
         loading,
         register,
+        verifyEmail,
+        resendVerificationEmail,
         login,
         googleLogin,
         logout,

@@ -32,6 +32,21 @@ export const register = async (body) => {
     throw new AppError("Email already registered", 400);
   }
 
+  const verification = await EmailVerification.findOne({ email });
+
+  if (verification) {
+    const cooldown = 60 * 1000;
+    const elapsed = Date.now() - verification.updatedAt.getTime();
+
+    if (elapsed < cooldown) {
+      const remainingTime = Math.ceil((cooldown - elapsed) / 1000);
+      throw new AppError(
+        `Please wait ${remainingTime} seconds before requesting another verification code`,
+        429,
+      );
+    }
+  }
+
   const hashedPassword = await argon2.hash(password);
 
   const otp = crypto.randomInt(100000, 1000000).toString();

@@ -4,6 +4,14 @@ export const register = async (data) => {
   return await api.post("/auth/register", data);
 };
 
+export const verifyEmail = async (data) => {
+  return await api.post("/auth/verify-email", data);
+};
+
+export const resendVerificationEmail = async (email) => {
+  return await api.post("/auth/resend-verification", { email });
+};
+
 export const login = async (data) => {
   return await api.post("/auth/login", data);
 };
