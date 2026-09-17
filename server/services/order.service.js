@@ -463,6 +463,7 @@ export const cancelOrder = async (orderId, userId) => {
     }
 
     order.orderStatus = ORDER_STATUS.CANCELLED;
+    order.paymentStatus = PAYMENT_STATUS.CANCELLED;
     order.cancelledAt = new Date();
 
     await order.save({ session });
@@ -536,6 +537,29 @@ export const discardCancelledOrderPayment = async (orderId, userId) => {
       _id: order._id,
       orderNumber: order.orderNumber,
     };
+
+    const cart = await Cart.findOne({ userId }).session(session);
+
+    if (cart) {
+      for (const orderItem of order.items) {
+        const cartItem = cart.items.find(
+          (item) =>
+            item.variantId.toString() === orderItem.variantId.toString(),
+        );
+
+        if (cartItem) {
+          cartItem.quantity += orderItem.quantity;
+        } else {
+          cart.items.push({
+            variantId: orderItem.variantId,
+            quantity: orderItem.quantity,
+            priceAtAdded: orderItem.sellingPrice,
+          });
+        }
+      }
+
+      await cart.save({ session });
+    }
 
     await Order.deleteOne(
       {

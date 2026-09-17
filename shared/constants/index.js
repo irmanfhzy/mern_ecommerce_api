@@ -12,6 +12,7 @@ export const PAYMENT_STATUS = {
   PAID: "paid",
   FAILED: "failed",
   REFUNDED: "refunded",
+  CANCELLED:"cancelled"
 };
 
 export const PAYMENT_METHOD = {
