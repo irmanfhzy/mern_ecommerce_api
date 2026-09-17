@@ -34,11 +34,12 @@ const variantSchema = new mongoose.Schema(
       type: Number,
       min: 0,
       default: 0,
+      required: true,
     },
     weight: {
       type: Number,
       min: 1,
-      default: 100,
+      required: true,
     },
     costPrice: {
       type: Number,

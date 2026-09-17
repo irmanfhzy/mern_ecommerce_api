@@ -8,6 +8,7 @@ import {
   getUserOrdersController,
   updateOrderStatusController,
   cancelOrderController,
+  discardCancelledOrderPaymentController,
 } from "../controllers/order.controller.js";
 
 import authenticate from "../middlewares/authenticator.middleware.js";
@@ -46,6 +47,12 @@ router.patch(
   authorize(ROLE.ADMIN),
   validateObjectId("params", "id"),
   updateOrderStatusController,
+);
+
+router.delete(
+  "/:id/discard",
+  validateObjectId("params", "id"),
+  discardCancelledOrderPaymentController,
 );
 
 export default router;

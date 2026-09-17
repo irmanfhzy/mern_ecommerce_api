@@ -4,6 +4,7 @@ import Order from "../models/order.model.js";
 import Variant from "../models/variant.model.js";
 import Cart from "../models/cart.model.js";
 import AppSetting from "../models/appSetting.model.js";
+import InventoryHistory from "../models/inventoryHistory.model.js";
 
 import { createInventoryHistory } from "./inventoryHistory.service.js";
 import { createPayment } from "./payment.service.js";
@@ -432,6 +433,10 @@ export const cancelOrder = async (orderId, userId) => {
       throw new AppError("Only pending orders can be cancelled", 400);
     }
 
+    if (order.paymentStatus !== PAYMENT_STATUS.PENDING) {
+      throw new AppError("Order cannot be cancelled", 400);
+    }
+
     for (const item of order.items) {
       await Variant.updateOne(
         {
@@ -466,7 +471,88 @@ export const cancelOrder = async (orderId, userId) => {
 
     return order;
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
+export const discardCancelledOrderPayment = async (orderId, userId) => {
+  const session = await mongoose.startSession();
+
+  session.startTransaction();
+
+  try {
+    const order = await Order.findOne({
+      _id: orderId,
+      userId,
+    }).session(session);
+
+    if (!order) {
+      throw new AppError("Order not found", 404);
+    }
+
+    if (
+      order.orderStatus !== ORDER_STATUS.PENDING ||
+      order.paymentStatus !== PAYMENT_STATUS.PENDING ||
+      order.paymentTransactionId
+    ) {
+      throw new AppError("Order cannot be discarded", 400);
+    }
+
+    for (const item of order.items) {
+      await Variant.updateOne(
+        {
+          _id: item.variantId,
+        },
+        {
+          $inc: {
+            stock: item.quantity,
+          },
+        },
+        {
+          session,
+        },
+      );
+
+      await InventoryHistory.deleteOne(
+        {
+          variantId: item.variantId,
+          type: INVENTORY_TYPE.OUT,
+          reason: INVENTORY_REASON.ORDER,
+          referenceId: order._id,
+        },
+        {
+          session,
+        },
+      );
+    }
+
+    const discardedOrder = {
+      _id: order._id,
+      orderNumber: order.orderNumber,
+    };
+
+    await Order.deleteOne(
+      {
+        _id: order._id,
+      },
+      {
+        session,
+      },
+    );
+
+    await session.commitTransaction();
+
+    return discardedOrder;
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
 
     throw error;
   } finally {

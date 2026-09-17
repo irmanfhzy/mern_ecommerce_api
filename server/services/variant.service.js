@@ -8,6 +8,7 @@ import Cart from "../models/cart.model.js";
 import Order from "../models/order.model.js";
 
 import IMAGE_CONFIG from "../constants/image.constant.js";
+
 import {
   INVENTORY_REASON,
   INVENTORY_TYPE,
@@ -34,9 +35,11 @@ export const createVariants = async ({
   const documents = [];
 
   for (let index = 0; index < variants.length; index++) {
-    const { attributes, sku, stock, costPrice, sellingPrice } = variants[index];
+    const { attributes, sku, stock, weight, costPrice, sellingPrice } =
+      variants[index];
 
     const parsedStock = Number(stock);
+    const parsedWeight = Number(weight);
     const parsedCostPrice = Number(costPrice);
     const parsedSellingPrice = Number(sellingPrice);
 
@@ -50,22 +53,25 @@ export const createVariants = async ({
       }
     }
 
-    if (Number.isNaN(parsedStock) || parsedStock < 0) {
-      throw new AppError("Invalid stock value", 400);
+    if (!Number.isFinite(parsedStock) || parsedStock <= 0) {
+      throw new AppError("Initial stock must be greater than 0", 400);
     }
 
-    if (Number.isNaN(parsedCostPrice) || parsedCostPrice < 0) {
+    if (!Number.isFinite(parsedWeight) || parsedWeight < 1) {
+      throw new AppError("Weight must be at least 1 gram", 400);
+    }
+
+    if (!Number.isFinite(parsedCostPrice) || parsedCostPrice < 0) {
       throw new AppError("Invalid price value", 400);
     }
 
-    if (Number.isNaN(parsedSellingPrice) || parsedSellingPrice < 0) {
+    if (!Number.isFinite(parsedSellingPrice) || parsedSellingPrice < 0) {
       throw new AppError("Invalid price value", 400);
     }
 
     const variantId = new mongoose.Types.ObjectId();
 
     const files = variantFiles[index] || [];
-
     const images = [];
 
     for (const file of files) {
@@ -76,7 +82,7 @@ export const createVariants = async ({
 
       const uploaded = await uploadImage(
         processedImage,
-        `variants/${variantId}`,
+        `CommerSale/variants/${variantId}`,
       );
 
       uploadedImages.push(uploaded);
@@ -93,6 +99,7 @@ export const createVariants = async ({
       attributes,
       sku,
       stock: parsedStock,
+      weight: parsedWeight,
       costPrice: parsedCostPrice,
       sellingPrice: parsedSellingPrice,
       images,
@@ -130,7 +137,6 @@ export const addVariant = async (productId, body, files = []) => {
   };
 
   const session = await mongoose.startSession();
-
   const uploadedImages = [];
 
   try {
@@ -166,7 +172,9 @@ export const addVariant = async (productId, body, files = []) => {
 
 export const getVariantsByProductId = async (productId, query = {}) => {
   const page = Math.max(parseInt(query.page, 10) || 1, 1);
+
   const limit = Math.min(parseInt(query.limit, 10) || 10, 50);
+
   const skip = (page - 1) * limit;
 
   const sort = {
@@ -196,8 +204,8 @@ export const getVariantById = async (id) => {
   return variant;
 };
 
-export const updateVariantById = async (id, body, files = {}) => {
-  const { attributes, sku, costPrice, sellingPrice } = body;
+export const updateVariantById = async (id, body, files = []) => {
+  const { attributes, sku, weight, costPrice, sellingPrice } = body;
 
   const variant = await Variant.findById(id);
 
@@ -223,10 +231,20 @@ export const updateVariantById = async (id, body, files = {}) => {
     updatedData.sku = sku;
   }
 
+  if (weight !== undefined) {
+    const parsedWeight = Number(weight);
+
+    if (!Number.isFinite(parsedWeight) || parsedWeight < 1) {
+      throw new AppError("Weight must be at least 1 gram", 400);
+    }
+
+    updatedData.weight = parsedWeight;
+  }
+
   if (costPrice !== undefined) {
     const parsedCostPrice = Number(costPrice);
 
-    if (Number.isNaN(parsedCostPrice) || parsedCostPrice < 0) {
+    if (!Number.isFinite(parsedCostPrice) || parsedCostPrice < 0) {
       throw new AppError("Invalid price value", 400);
     }
 
@@ -236,7 +254,7 @@ export const updateVariantById = async (id, body, files = {}) => {
   if (sellingPrice !== undefined) {
     const parsedSellingPrice = Number(sellingPrice);
 
-    if (Number.isNaN(parsedSellingPrice) || parsedSellingPrice < 0) {
+    if (!Number.isFinite(parsedSellingPrice) || parsedSellingPrice < 0) {
       throw new AppError("Invalid price value", 400);
     }
 
@@ -246,25 +264,24 @@ export const updateVariantById = async (id, body, files = {}) => {
   let uploadedImages = [];
 
   try {
-    if (files?.length) {
+    if (files.length) {
       uploadedImages = await Promise.all(
         files.map(async (file) => {
           const processedImage = await processImage(
             file.buffer,
             IMAGE_CONFIG.VARIANT,
           );
-          const uploadedImage = await uploadImage(
-            processedImage,
-            `variants/${variant._id}`,
-          );
 
-          return uploadedImage;
+          return uploadImage(
+            processedImage,
+            `CommerSale/variants/${variant._id}`,
+          );
         }),
       );
 
-      updatedData.images = uploadedImages.map((img) => ({
-        url: img.secure_url,
-        publicId: img.public_id,
+      updatedData.images = uploadedImages.map((image) => ({
+        url: image.secure_url,
+        publicId: image.public_id,
       }));
     }
 
@@ -273,9 +290,13 @@ export const updateVariantById = async (id, body, files = {}) => {
       returnDocument: "after",
     });
 
-    if (files?.length && variant.images?.length) {
+    checker.checkDocument(updatedVariant, "Variant not found", 404);
+
+    if (files.length && variant.images?.length) {
       await Promise.allSettled(
-        variant.images.map((img) => cloudinary.uploader.destroy(img.publicId)),
+        variant.images.map((image) =>
+          cloudinary.uploader.destroy(image.publicId),
+        ),
       );
     }
 
@@ -283,7 +304,9 @@ export const updateVariantById = async (id, body, files = {}) => {
   } catch (error) {
     if (uploadedImages.length) {
       await Promise.allSettled(
-        uploadedImages.map((img) => cloudinary.uploader.destroy(img.public_id)),
+        uploadedImages.map((image) =>
+          cloudinary.uploader.destroy(image.public_id),
+        ),
       );
     }
 
@@ -296,7 +319,7 @@ export const updateVariantStock = async (id, body) => {
 
   const parsedQuantity = Number(quantity);
 
-  if (Number.isNaN(parsedQuantity) || parsedQuantity <= 0) {
+  if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
     throw new AppError("Invalid quantity", 400);
   }
 
@@ -351,13 +374,13 @@ export const deleteVariantById = async (id) => {
 
   if (deletedVariant.images?.length) {
     await Promise.allSettled(
-      deletedVariant.images.map(async (img) => {
+      deletedVariant.images.map(async (image) => {
         const used = await Order.exists({
-          "items.variantImages.publicId": img.publicId,
+          "items.variantImages.publicId": image.publicId,
         });
 
         if (!used) {
-          await cloudinary.uploader.destroy(img.publicId);
+          await cloudinary.uploader.destroy(image.publicId);
         }
       }),
     );

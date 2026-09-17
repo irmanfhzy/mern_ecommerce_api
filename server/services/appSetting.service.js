@@ -1,9 +1,13 @@
 import AppSetting from "../models/appSetting.model.js";
+
 import processImage from "../utils/processingImage.js";
 import uploadImage from "../utils/uploadingImage.js";
-import cloudinary from "../config/cloudinary.js";
-import IMAGE_CONFIG from "../constants/image.constant.js";
 import sanitizeHtmlValue from "../utils/sanitizeHtml.js";
+
+import cloudinary from "../config/cloudinary.js";
+
+import IMAGE_CONFIG from "../constants/image.constant.js";
+
 
 export const getAppSetting = async () => {
   return await AppSetting.findOne().lean();
@@ -32,6 +36,9 @@ export const saveAppSetting = async (body, files) => {
 
   const oldSetting = await AppSetting.findOne().lean();
 
+  let uploadedLogo = null;
+  let uploadedFavicon = null;
+
   try {
     if (files?.logo?.[0]) {
       const processedLogo = await processImage(
@@ -39,7 +46,7 @@ export const saveAppSetting = async (body, files) => {
         IMAGE_CONFIG.HEADER_LOGO,
       );
 
-      const uploadedLogo = await uploadImage(processedLogo, "app/logo");
+      uploadedLogo = await uploadImage(processedLogo, "CommerSale/app/logo");
 
       updatedData.logo = {
         url: uploadedLogo.secure_url,
@@ -55,9 +62,9 @@ export const saveAppSetting = async (body, files) => {
         IMAGE_CONFIG.FAVICON,
       );
 
-      const uploadedFavicon = await uploadImage(
+      uploadedFavicon = await uploadImage(
         processedFavicon,
-        "app/favicon",
+        "CommerSale/app/favicon",
       );
 
       updatedData.favicon = {
@@ -72,17 +79,14 @@ export const saveAppSetting = async (body, files) => {
       returnDocument: "after",
       upsert: true,
       runValidators: true,
-    });
+    }).lean();
 
-    if (
-      (files?.logo?.[0] || removeLogo === "true") &&
-      oldSetting?.logo?.publicId
-    ) {
+    if ((uploadedLogo || removeLogo === "true") && oldSetting?.logo?.publicId) {
       await cloudinary.uploader.destroy(oldSetting.logo.publicId);
     }
 
     if (
-      (files?.favicon?.[0] || removeFavicon === "true") &&
+      (uploadedFavicon || removeFavicon === "true") &&
       oldSetting?.favicon?.publicId
     ) {
       await cloudinary.uploader.destroy(oldSetting.favicon.publicId);
@@ -90,12 +94,12 @@ export const saveAppSetting = async (body, files) => {
 
     return newAppSetting;
   } catch (error) {
-    if (updatedData.logo?.publicId) {
-      await cloudinary.uploader.destroy(updatedData.logo.publicId);
+    if (uploadedLogo?.public_id) {
+      await cloudinary.uploader.destroy(uploadedLogo.public_id);
     }
 
-    if (updatedData.favicon?.publicId) {
-      await cloudinary.uploader.destroy(updatedData.favicon.publicId);
+    if (uploadedFavicon?.public_id) {
+      await cloudinary.uploader.destroy(uploadedFavicon.public_id);
     }
 
     throw error;

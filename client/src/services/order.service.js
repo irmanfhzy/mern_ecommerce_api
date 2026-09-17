@@ -27,3 +27,7 @@ export const updateOrderStatus = (orderId, data) => {
 export const cancelOrder = (orderId) => {
   return api.patch(`/orders/${orderId}/cancel`);
 };
+
+export const discardCancelledOrderPayment = async (orderId) => {
+  return api.delete(`/orders/${orderId}/discard`);
+};

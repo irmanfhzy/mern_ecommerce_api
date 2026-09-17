@@ -58,6 +58,15 @@ export const addProduct = async (body, files = []) => {
       ? JSON.parse(body.variants)
       : body.variants || [];
 
+  if (
+    variants.some(
+      (variant) =>
+        !Number.isFinite(Number(variant.stock)) || Number(variant.stock) <= 0,
+    )
+  ) {
+    throw new AppError("Initial stock must be greater than 0", 400);
+  }
+
   const variantFiles = {};
 
   files.forEach((file) => {
@@ -74,9 +83,7 @@ export const addProduct = async (body, files = []) => {
 
   const productId = new mongoose.Types.ObjectId();
   const slug = generateSlug(name);
-
   const session = await mongoose.startSession();
-
   const uploadedImages = [];
 
   try {
@@ -92,7 +99,7 @@ export const addProduct = async (body, files = []) => {
 
       const uploaded = await uploadImage(
         processedImage,
-        `products/${productId}`,
+        `CommerSale/products/${productId}`,
       );
 
       uploadedImages.push(uploaded);
@@ -363,7 +370,10 @@ export const updateProductById = async (id, body, files = []) => {
           IMAGE_CONFIG.PRODUCT,
         );
 
-        const uploaded = await uploadImage(processedImage, `products/${id}`);
+        const uploaded = await uploadImage(
+          processedImage,
+          `CommerSale/products/${id}`,
+        );
 
         uploadedImages.push({
           url: uploaded.secure_url,

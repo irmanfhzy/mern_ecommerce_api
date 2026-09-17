@@ -9,10 +9,9 @@ export default function VariantInfoForm({
 }) {
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
           <label className="mb-2 block font-medium">SKU</label>
-
           <input
             type="text"
             value={variant.sku}
@@ -24,7 +23,6 @@ export default function VariantInfoForm({
         {showStock && (
           <div>
             <label className="mb-2 block font-medium">Stock</label>
-
             <input
               type="number"
               min="0"
@@ -36,8 +34,18 @@ export default function VariantInfoForm({
         )}
 
         <div>
-          <label className="mb-2 block font-medium">Cost Price</label>
+          <label className="mb-2 block font-medium">Weight (gram)</label>
+          <input
+            type="number"
+            min="1"
+            value={variant.weight}
+            onChange={(e) => onChange("weight", e.target.value)}
+            className="w-full rounded border px-3 py-2"
+          />
+        </div>
 
+        <div>
+          <label className="mb-2 block font-medium">Cost Price</label>
           <input
             type="number"
             min="0"
@@ -49,7 +57,6 @@ export default function VariantInfoForm({
 
         <div>
           <label className="mb-2 block font-medium">Selling Price</label>
-
           <input
             type="number"
             min="0"

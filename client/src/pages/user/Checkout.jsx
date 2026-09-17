@@ -13,7 +13,10 @@ import Modal from "../../components/common/Modal";
 
 import formatPrice from "../../utils/priceFormatter";
 
-import { createOrder } from "../../services/order.service";
+import {
+  createOrder,
+  discardCancelledOrderPayment,
+} from "../../services/order.service";
 import { getProfile } from "../../services/user.service";
 import { getVariantById } from "../../services/variant.service";
 import { getShippingRates } from "../../services/shipping.service";
@@ -316,8 +319,13 @@ export default function Checkout() {
           console.log("Payment error", result);
         },
 
-        onClose: () => {
-          console.log("Payment popup closed");
+        onClose: async () => {
+          try {
+            await discardCancelledOrderPayment(res.data.data.order._id);
+            await fetchCart();
+          } catch (error) {
+            alert(error.response?.data?.message || error.message);
+          }
         },
       });
     } catch (error) {

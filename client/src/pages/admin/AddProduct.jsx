@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 
 import ProductForm from "../../components/admin/ProductForm";
@@ -27,6 +28,7 @@ export default function AddProduct() {
         ],
         sku: "",
         stock: 0,
+        weight: "",
         costPrice: 0,
         sellingPrice: 0,
         images: [],
@@ -65,7 +67,6 @@ export default function AddProduct() {
   ) => {
     setForm((prev) => {
       const variants = [...prev.variants];
-
       const attributes = [...variants[variantIndex].attributes];
 
       attributes[attributeIndex] = {
@@ -136,6 +137,7 @@ export default function AddProduct() {
           ],
           sku: "",
           stock: 0,
+          weight: "",
           costPrice: 0,
           sellingPrice: 0,
           images: [],
@@ -186,12 +188,10 @@ export default function AddProduct() {
   };
 
   const handleProductImageChange = (files) => {
-    setForm((prev) => {
-      return {
-        ...prev,
-        images: [...prev.images, ...files],
-      };
-    });
+    setForm((prev) => ({
+      ...prev,
+      images: [...prev.images, ...files],
+    }));
   };
 
   const handleRemoveProductImage = (image) => {

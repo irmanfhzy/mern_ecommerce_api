@@ -6,6 +6,16 @@ export const createOrderController = asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, data });
 });
 
+export const discardCancelledOrderPaymentController = asyncHandler(
+  async (req, res) => {
+    const data = await orderService.discardCancelledOrderPayment(
+      req.params.id,
+      req.user.userId,
+    );
+    res.status(200).json({ success: true, ...data });
+  },
+);
+
 export const getAllOrdersController = asyncHandler(async (req, res) => {
   const data = await orderService.getAllOrders(req.query);
 

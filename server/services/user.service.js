@@ -7,7 +7,9 @@ import * as checker from "../utils/errorChecker.js";
 import AppError from "../utils/AppError.js";
 import processImage from "../utils/processingImage.js";
 import uploadImage from "../utils/uploadingImage.js";
+
 import IMAGE_CONFIG from "../constants/image.constant.js";
+
 import cloudinary from "../config/cloudinary.js";
 
 export const searchUsers = async (name) => {
@@ -53,60 +55,64 @@ export const updateProfile = async (userId, body) => {
     throw new AppError("No data to update", 400);
   }
 
-  const oldProfile = await User.findById(userId)
-    .select("image.publicId")
-    .lean();
-
-  checker.checkDocument(oldProfile, "User not found");
-
   const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
     runValidators: true,
     returnDocument: "after",
-  });
+  })
+    .select("-password")
+    .lean();
+
+  checker.checkDocument(updatedUser, "User not found");
 
   return updatedUser;
 };
 
 export const updateProfilePicture = async (userId, file) => {
-  const oldProfilePicture = await User.findById(userId)
-    .select("image.publicId")
-    .lean();
+  const user = await User.findById(userId).select("image.publicId").lean();
 
-  checker.checkDocument(oldProfilePicture, "User not found");
+  checker.checkDocument(user, "User not found");
 
-  const oldImagePublicId = oldProfilePicture.image?.publicId;
+  if (!file) {
+    throw new AppError("Profile picture is required", 400);
+  }
 
+  const oldImagePublicId = user.image?.publicId;
   let uploadedImage = null;
 
   try {
-    if (file) {
-      const processedImage = await processImage(
-        file.buffer,
-        IMAGE_CONFIG.PROFILE,
-      );
+    const processedImage = await processImage(
+      file.buffer,
+      IMAGE_CONFIG.PROFILE,
+    );
 
-      uploadedImage = await uploadImage(processedImage, `user/${userId}`);
+    uploadedImage = await uploadImage(
+      processedImage,
+      `CommerSale/users/${userId}`,
+    );
 
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        {
-          image: {
-            url: uploadedImage.secure_url,
-            publicId: uploadedImage.public_id,
-          },
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        image: {
+          url: uploadedImage.secure_url,
+          publicId: uploadedImage.public_id,
         },
-        {
-          runValidators: true,
-          returnDocument: "after",
-        },
-      );
+      },
+      {
+        runValidators: true,
+        returnDocument: "after",
+      },
+    )
+      .select("-password")
+      .lean();
 
-      if (file && oldImagePublicId) {
-        await cloudinary.uploader.destroy(oldImagePublicId);
-      }
+    checker.checkDocument(updatedUser, "User not found");
 
-      return updatedUser;
+    if (oldImagePublicId) {
+      await cloudinary.uploader.destroy(oldImagePublicId);
     }
+
+    return updatedUser;
   } catch (error) {
     if (uploadedImage?.public_id) {
       await cloudinary.uploader.destroy(uploadedImage.public_id);
@@ -139,7 +145,9 @@ export const updateEmail = async (userId, email) => {
       runValidators: true,
       returnDocument: "after",
     },
-  );
+  )
+    .select("-password")
+    .lean();
 
   checker.checkDocument(updatedUser, "User not found");
 
@@ -167,7 +175,9 @@ export const updateUsername = async (userId, username) => {
       runValidators: true,
       returnDocument: "after",
     },
-  );
+  )
+    .select("-password")
+    .lean();
 
   checker.checkDocument(updatedUser, "User not found");
 
@@ -197,7 +207,9 @@ export const updatePhone = async (userId, phone) => {
       runValidators: true,
       returnDocument: "after",
     },
-  );
+  )
+    .select("-password")
+    .lean();
 
   checker.checkDocument(updatedUser, "User not found");
 
@@ -210,19 +222,14 @@ export const addAddress = async (userId, body) => {
     recipientName,
     phone,
     street,
-
     villageId,
     village,
-
     districtId,
     district,
-
     cityId,
     city,
-
     provinceId,
     province,
-
     postalCode,
   } = body;
 
@@ -277,19 +284,14 @@ export const addAddress = async (userId, body) => {
             recipientName,
             phone,
             street,
-
             villageId,
             village,
-
             districtId,
             district,
-
             cityId,
             city,
-
             provinceId,
             province,
-
             postalCode,
             isDefault,
           },
@@ -300,14 +302,17 @@ export const addAddress = async (userId, body) => {
         runValidators: true,
         returnDocument: "after",
       },
-    );
+    )
+      .select("-password")
+      .lean();
+
+    checker.checkDocument(updatedUser, "User not found");
 
     await session.commitTransaction();
 
     return updatedUser;
   } catch (error) {
     await session.abortTransaction();
-
     throw error;
   } finally {
     await session.endSession();
@@ -320,19 +325,14 @@ export const updateAddress = async (userId, addressId, body) => {
     recipientName,
     phone,
     street,
-
     villageId,
     village,
-
     districtId,
     district,
-
     cityId,
     city,
-
     provinceId,
     province,
-
     postalCode,
   } = body;
 
@@ -350,7 +350,7 @@ export const updateAddress = async (userId, addressId, body) => {
     {
       "addresses.$": 1,
     },
-  );
+  ).lean();
 
   if (!user || !user.addresses[0]) {
     throw new AppError("Address not found", 404);
@@ -365,19 +365,14 @@ export const updateAddress = async (userId, addressId, body) => {
     "addresses.$.recipientName": recipientName,
     "addresses.$.phone": phone,
     "addresses.$.street": street,
-
     "addresses.$.villageId": villageId,
     "addresses.$.village": village,
-
     "addresses.$.districtId": districtId,
     "addresses.$.district": district,
-
     "addresses.$.cityId": cityId,
     "addresses.$.city": city,
-
     "addresses.$.provinceId": provinceId,
     "addresses.$.province": province,
-
     "addresses.$.postalCode": postalCode,
   };
 
@@ -424,14 +419,17 @@ export const updateAddress = async (userId, addressId, body) => {
         runValidators: true,
         returnDocument: "after",
       },
-    );
+    )
+      .select("-password")
+      .lean();
+
+    checker.checkDocument(updatedUser, "User not found");
 
     await session.commitTransaction();
 
     return updatedUser;
   } catch (error) {
     await session.abortTransaction();
-
     throw error;
   } finally {
     await session.endSession();
@@ -452,9 +450,11 @@ export const deleteAddress = async (userId, addressId) => {
       {
         "addresses.$": 1,
       },
-    ).session(session);
+    )
+      .session(session)
+      .lean();
 
-    if (!user) {
+    if (!user || !user.addresses[0]) {
       throw new AppError("Address not found", 404);
     }
 
@@ -513,7 +513,6 @@ export const deleteAddress = async (userId, addressId) => {
     return result;
   } catch (error) {
     await session.abortTransaction();
-
     throw error;
   } finally {
     await session.endSession();
@@ -526,8 +525,8 @@ export const changePassword = async (userId, body) => {
   checker.checkPassword({
     type: "change",
     currentPassword,
-    newPassword: newPassword,
-    confirmNewPassword: confirmNewPassword,
+    newPassword,
+    confirmNewPassword,
   });
 
   const user = await User.findById(userId).select("+password");
@@ -556,6 +555,10 @@ export const deleteUserById = async (userId) => {
   const deletedUser = await User.findByIdAndDelete(userId);
 
   checker.checkDocument(deletedUser, "User not found");
+
+  if (deletedUser.image?.publicId) {
+    await cloudinary.uploader.destroy(deletedUser.image.publicId);
+  }
 
   return deletedUser;
 };
