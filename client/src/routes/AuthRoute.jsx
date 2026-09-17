@@ -3,6 +3,7 @@ import AuthRoute from "./ProtectedAuthRoute";
 
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
+import ForgotPassword from "../pages/auth/ForgotPassword";
 
 const authRoute = [
   {
@@ -18,6 +19,10 @@ const authRoute = [
           {
             path: "/register",
             element: <Register />,
+          },
+          {
+            path: "/forgot-password",
+            element: <ForgotPassword />,
           },
         ],
       },

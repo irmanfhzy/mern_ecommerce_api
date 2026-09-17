@@ -15,6 +15,22 @@ const requestBodySchemas = {
     login: {
       required: ["identifier", "password"],
     },
+
+    forgotPassword: {
+      required: ["email"],
+    },
+
+    resetPassword: {
+      required: ["token", "newPassword", "confirmNewPassword"],
+    },
+
+    resendPasswordReset: {
+      required: ["email"],
+    },
+
+    verifyResetPassword: {
+      required: ["email", "otp"],
+    },
   },
 
   profile: {

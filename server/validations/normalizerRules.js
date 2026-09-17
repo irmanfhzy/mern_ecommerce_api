@@ -11,6 +11,25 @@ const rules = {
       identifier: "lowercase",
       password: "raw",
     },
+
+    forgotPassword: {
+      email: "lowercase",
+    },
+
+    resetPassword: {
+      email: "lowercase",
+      newPassword: "raw",
+      confirmNewPassword: "raw",
+    },
+
+    resendPasswordReset: {
+      email: "lowercase",
+    },
+
+    verifyResetPassword: {
+      email: "lowercase",
+      otp: "raw",
+    },
   },
 
   profile: {

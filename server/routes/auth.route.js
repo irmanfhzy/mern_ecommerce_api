@@ -12,6 +12,10 @@ import {
   registerController,
   verifyEmailController,
   resendVerificationEmailController,
+  forgotPasswordController,
+  verifyResetPasswordController,
+  resendPasswordResetController,
+  resetPasswordController,
   loginController,
   googleLoginController,
   refreshAccessTokenController,
@@ -37,11 +41,47 @@ router.post(
 router.post(
   "/resend-verification",
   createRateLimiter({
-    seconds: 60,
-    limit: 1,
+    seconds: 5 * 60,
+    limit: 3,
   }),
   validateRequestBody(requestBodySchemas.auth.resendVerification),
   resendVerificationEmailController,
+);
+
+router.post(
+  "/forgot-password",
+  createRateLimiter({
+    seconds: 5 * 60,
+    limit: 3,
+  }),
+  validateRequestBody(requestBodySchemas.auth.forgotPassword),
+  normalizeRequestBody(rules.auth.forgotPassword),
+  forgotPasswordController,
+);
+
+router.post(
+  "/verify-reset-password",
+  validateRequestBody(requestBodySchemas.auth.verifyResetPassword),
+  normalizeRequestBody(rules.auth.verifyResetPassword),
+  verifyResetPasswordController,
+);
+
+router.post(
+  "/reset-password",
+  validateRequestBody(requestBodySchemas.auth.resetPassword),
+  normalizeRequestBody(rules.auth.resetPassword),
+  resetPasswordController,
+);
+
+router.post(
+  "/resend-password-reset",
+  createRateLimiter({
+    seconds: 5 * 60,
+    limit: 3,
+  }),
+  validateRequestBody(requestBodySchemas.auth.resendPasswordReset),
+  normalizeRequestBody(rules.auth.resendPasswordReset),
+  resendPasswordResetController,
 );
 
 router.post(

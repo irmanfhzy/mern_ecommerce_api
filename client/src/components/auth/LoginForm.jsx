@@ -1,139 +1,35 @@
-import { useState, useContext, useEffect, useCallback } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { AuthContext } from "../../contexts/AuthContext";
 import Button from "../common/Button";
-import { ROLE } from "@ecommerce/shared/constants";
-import PATHS from "../../constants/paths";
+import PasswordField from "./PasswordField";
 
-export default function LoginForm() {
-  const [formData, setFormData] = useState({
-    identifier: "",
-    password: "",
-  });
-
-  const [loading, setLoading] = useState(false);
-  const { login, googleLogin } = useContext(AuthContext);
-
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      setLoading(true);
-      const loggedInUser = await login(formData);
-      console.log(loggedInUser);
-      console.log(loggedInUser?.role);
-      console.log(ROLE.ADMIN);
-      alert("Login successful");
-
-      if (loggedInUser?.role === ROLE.ADMIN) {
-        navigate(location.state?.from?.pathname || PATHS.ADMIN.DASHBOARD, {
-          replace: true,
-        });
-      } else {
-        navigate(location.state?.from?.pathname || PATHS.PUBLIC.HOME, {
-          replace: true,
-        });
-      }
-    } catch (error) {
-      alert(error.response?.data?.message || "Login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = useCallback(
-    async (credential) => {
-      try {
-        setLoading(true);
-
-        const loggedInUser = await googleLogin(credential);
-
-        alert("Login successful");
-
-        if (loggedInUser?.role === ROLE.ADMIN) {
-          navigate(location.state?.from?.pathname || PATHS.ADMIN.DASHBOARD, {
-            replace: true,
-          });
-        } else {
-          navigate(location.state?.from?.pathname || PATHS.PUBLIC.HOME, {
-            replace: true,
-          });
-        }
-      } catch (error) {
-        alert(error.response?.data?.message || "Google login failed");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [googleLogin, navigate, location],
-  );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (window.google?.accounts?.id) {
-        clearInterval(interval);
-
-        window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-          callback: (response) => {
-            handleGoogleLogin(response.credential);
-          },
-        });
-
-        window.google.accounts.id.renderButton(
-          document.getElementById("google-button"),
-          {
-            theme: "outline",
-            size: "large",
-            width: "100%",
-          },
-        );
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [handleGoogleLogin]);
-
+export default function LoginForm({ formData, loading, onChange, onSubmit }) {
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-4 bg-white p-8 rounded-xl shadow-md w-full max-w-md"
-    >
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <label>Username, email, or phone number</label>
+        <label htmlFor="identifier">Username, email, or phone number</label>
 
         <input
+          id="identifier"
           type="text"
           name="identifier"
           placeholder="Enter your username, email, or phone number"
           value={formData.identifier}
-          onChange={handleChange}
+          onChange={onChange}
           required
           className="border rounded-lg px-4 py-2"
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <label>Password</label>
+        <label htmlFor="password">Password</label>
 
-        <input
-          type="password"
+        <PasswordField
+          id="password"
           name="password"
           placeholder="Enter your password"
           value={formData.password}
-          onChange={handleChange}
+          onChange={onChange}
           required
-          className="border rounded-lg px-4 py-2"
+          fieldClassName="border rounded-lg px-4 py-2 pr-12"
         />
       </div>
 
@@ -145,15 +41,6 @@ export default function LoginForm() {
       >
         Login
       </Button>
-
-      <div id="google-button" className="w-full" />
-
-      <p className="text-sm text-center">
-        Don&apos;t have an account?{" "}
-        <Link to="/register" className="font-semibold underline">
-          Register
-        </Link>
-      </p>
     </form>
   );
 }

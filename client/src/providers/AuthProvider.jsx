@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import {
-  register as registerApi,
-  verifyEmail as verifyEmailApi,
-  resendVerificationEmail as resendVerificationEmailApi,
   login as loginApi,
   googleLogin as googleLoginApi,
   getMe as getMeApi,
@@ -13,18 +10,6 @@ import {
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const register = async (data) => {
-    await registerApi(data);
-  };
-
-  const verifyEmail = async (data) => {
-    await verifyEmailApi(data);
-  };
-
-  const resendVerificationEmail = async (email) => {
-    await resendVerificationEmailApi(email);
-  };
 
   const login = async (data) => {
     const res = await loginApi(data);
@@ -81,9 +66,6 @@ export default function AuthProvider({ children }) {
         user,
         setUser,
         loading,
-        register,
-        verifyEmail,
-        resendVerificationEmail,
         login,
         googleLogin,
         logout,

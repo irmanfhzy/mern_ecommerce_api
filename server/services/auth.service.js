@@ -2,13 +2,19 @@ import argon2 from "argon2";
 import { OAuth2Client } from "google-auth-library";
 import crypto from "crypto";
 import User from "../models/user.model.js";
+import PasswordReset from "../models/passwordReset.model.js";
 import EmailVerification from "../models/emailVerification.model.js";
-import { sendVerificationEmail } from "./email.service.js";
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from "./email.service.js";
 import normalizePhone from "../utils/phoneNormalizer.js";
 import {
   generateAccessToken,
   generateRefreshToken,
+  generateResetPasswordToken,
   verifyRefreshToken,
+  verifyToken,
 } from "../utils/jwt.js";
 import * as checker from "../utils/errorChecker.js";
 import AppError from "../utils/AppError.js";
@@ -19,7 +25,6 @@ export const register = async (body) => {
   const { name, email, password, confirmPassword } = body;
 
   checker.checkEmail(email);
-
   checker.checkPassword({
     type: "register",
     newPassword: password,
@@ -34,12 +39,14 @@ export const register = async (body) => {
 
   const verification = await EmailVerification.findOne({ email });
 
+  const cooldown = 60 * 1000;
+
   if (verification) {
-    const cooldown = 60 * 1000;
     const elapsed = Date.now() - verification.updatedAt.getTime();
 
     if (elapsed < cooldown) {
       const remainingTime = Math.ceil((cooldown - elapsed) / 1000);
+
       throw new AppError(
         `Please wait ${remainingTime} seconds before requesting another verification code`,
         429,
@@ -48,7 +55,6 @@ export const register = async (body) => {
   }
 
   const hashedPassword = await argon2.hash(password);
-
   const otp = crypto.randomInt(100000, 1000000).toString();
   const otpHash = await argon2.hash(otp);
 
@@ -67,6 +73,10 @@ export const register = async (body) => {
   );
 
   await sendVerificationEmail(email, otp);
+
+  return {
+    cooldown,
+  };
 };
 
 export const verifyEmail = async (body) => {
@@ -113,6 +123,18 @@ export const resendVerificationEmail = async (body) => {
     throw new AppError("Verification request not found or expired", 400);
   }
 
+  const cooldown = 60 * 1000;
+  const elapsed = Date.now() - verification.updatedAt.getTime();
+
+  if (elapsed < cooldown) {
+    const remainingTime = Math.ceil((cooldown - elapsed) / 1000);
+
+    throw new AppError(
+      `Please wait ${remainingTime} seconds before requesting another verification code`,
+      429,
+    );
+  }
+
   const otp = crypto.randomInt(100000, 1000000).toString();
   const otpHash = await argon2.hash(otp);
 
@@ -120,8 +142,173 @@ export const resendVerificationEmail = async (body) => {
   verification.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   await verification.save();
-
   await sendVerificationEmail(email, otp);
+
+  return {
+    cooldown,
+  };
+};
+
+export const forgotPassword = async (body) => {
+  const { email } = body;
+
+  checker.checkEmail(email);
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new AppError("Email not found", 404);
+  }
+
+  const passwordReset = await PasswordReset.findOne({ email });
+
+  const cooldown = 60 * 1000;
+
+  if (passwordReset) {
+    const elapsed = Date.now() - passwordReset.updatedAt.getTime();
+
+    if (elapsed < cooldown) {
+      const remainingTime = Math.ceil((cooldown - elapsed) / 1000);
+
+      throw new AppError(
+        `Please wait ${remainingTime} seconds before requesting another password reset code`,
+        429,
+      );
+    }
+  }
+
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const otpHash = await argon2.hash(otp);
+
+  await PasswordReset.findOneAndUpdate(
+    { email },
+    {
+      email,
+      otpHash,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    },
+    {
+      upsert: true,
+    },
+  );
+
+  await sendPasswordResetEmail(email, otp);
+
+  return {
+    cooldown,
+  };
+};
+
+export const verifyResetPassword = async (body) => {
+  const { email, otp } = body;
+
+  const passwordReset = await PasswordReset.findOne({ email });
+
+  if (!passwordReset) {
+    throw new AppError("Password reset code not found or expired", 400);
+  }
+
+  if (passwordReset.expiresAt <= new Date()) {
+    await PasswordReset.deleteOne({ email });
+
+    throw new AppError("Password reset code expired", 400);
+  }
+
+  const isValid = await argon2.verify(passwordReset.otpHash, otp);
+
+  if (!isValid) {
+    throw new AppError("Invalid password reset code", 400);
+  }
+
+  const resetPasswordToken = generateResetPasswordToken(
+    email,
+    "reset-password",
+  );
+
+  return {
+    resetPasswordToken,
+  };
+};
+
+export const resetPassword = async (body) => {
+  const { token, newPassword, confirmNewPassword } = body;
+
+  checker.checkPassword({
+    type: "update",
+    newPassword,
+    confirmNewPassword,
+  });
+
+  const tokenPayload = verifyToken(token);
+
+  if (tokenPayload.purpose !== "reset-password") {
+    throw new AppError("Invalid token", 400);
+  }
+
+  const passwordReset = await PasswordReset.findOne({
+    email: tokenPayload.email,
+  });
+
+  if (!passwordReset) {
+    throw new AppError("Password reset code not found or expired", 400);
+  }
+
+  if (passwordReset.expiresAt <= new Date()) {
+    await PasswordReset.deleteOne({ email: tokenPayload.email });
+    throw new AppError("Password reset code expired", 400);
+  }
+
+  const hashedPassword = await argon2.hash(newPassword);
+
+  await User.findOneAndUpdate(
+    { email: tokenPayload.email },
+    { password: hashedPassword },
+  );
+
+  await PasswordReset.deleteOne({ email: tokenPayload.email });
+};
+
+export const resendPasswordReset = async (body) => {
+  const { email } = body;
+
+  checker.checkEmail(email);
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new AppError("Email not found", 404);
+  }
+
+  const passwordReset = await PasswordReset.findOne({ email });
+
+  if (!passwordReset) {
+    throw new AppError("Password reset request not found or expired", 400);
+  }
+
+  const cooldown = 60 * 1000;
+  const elapsed = Date.now() - passwordReset.updatedAt.getTime();
+
+  if (elapsed < cooldown) {
+    const remainingTime = Math.ceil((cooldown - elapsed) / 1000);
+
+    throw new AppError(
+      `Please wait ${remainingTime} seconds before requesting another password reset code`,
+      429,
+    );
+  }
+
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const otpHash = await argon2.hash(otp);
+
+  passwordReset.otpHash = otpHash;
+  passwordReset.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  await passwordReset.save();
+  await sendPasswordResetEmail(email, otp);
+
+  return {
+    cooldown,
+  };
 };
 
 export const login = async (body) => {

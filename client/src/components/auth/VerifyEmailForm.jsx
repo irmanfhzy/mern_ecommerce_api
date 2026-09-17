@@ -1,23 +1,26 @@
-import { useState, useContext, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../../contexts/AuthContext";
+
 import Button from "../common/Button";
+
+import {
+  verifyEmail,
+  resendVerificationEmail,
+} from "../../services/auth.service";
 
 export default function VerifyEmailForm({ email, onBack }) {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
-
-  const { verifyEmail, resendVerificationEmail } = useContext(AuthContext);
+  const resendCooldownKey = `resendCooldown:${email}`;
+  const [resendCooldown, setResendCooldown] = useState(
+    Number(localStorage.getItem(resendCooldownKey)) || 0,
+  );
 
   const navigate = useNavigate();
 
-  const resendCooldownKey = `resendCooldown:${email}`;
-
   useEffect(() => {
-    const resendCooldown = Number(localStorage.getItem(resendCooldownKey));
-
     if (!resendCooldown) return;
 
     const updateCountdown = () => {
@@ -37,7 +40,7 @@ export default function VerifyEmailForm({ email, onBack }) {
     const timer = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(timer);
-  }, [resendCooldownKey]);
+  }, [resendCooldown, resendCooldownKey]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,13 +69,16 @@ export default function VerifyEmailForm({ email, onBack }) {
     try {
       setResending(true);
 
-      await resendVerificationEmail(email);
+      const res = await resendVerificationEmail(email);
 
-      const resendCooldown = Date.now() + 60 * 1000;
+      console.log(res.data.cooldown);
+      const cooldown = res.data.cooldown;
+      const cooldownEnd = Date.now() + cooldown;
 
-      localStorage.setItem(resendCooldownKey, resendCooldown.toString());
+      localStorage.setItem(resendCooldownKey, cooldownEnd.toString());
 
-      setCountdown(60);
+      setResendCooldown(cooldownEnd);
+      setCountdown(Math.ceil(cooldown / 1000));
       setOtp("");
 
       alert("Verification code resent to your email");
@@ -88,13 +94,14 @@ export default function VerifyEmailForm({ email, onBack }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-4 bg-white p-8 rounded-xl shadow-md w-full max-w-md"
+      className="flex flex-col gap-4 p-8 rounded-xl shadow-md w-full max-w-lg"
     >
-      <h2 className="text-xl font-semibold">Verify your email</h2>
+      <h2 className="text-xl font-semibold text-center">Verify your email</h2>
 
-      <p className="text-sm">
-        Enter the verification code sent to <strong>{email}</strong>.
-      </p>
+      <div className="flex flex-col items-center text-sm">
+        <p>Enter the verification code sent to</p>
+        <p className="font-bold">{email}</p>
+      </div>
 
       <input
         type="text"

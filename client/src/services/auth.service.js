@@ -12,6 +12,22 @@ export const resendVerificationEmail = async (email) => {
   return await api.post("/auth/resend-verification", { email });
 };
 
+export const forgotPassword = async (email) => {
+  return await api.post("/auth/forgot-password", { email });
+};
+
+export const verifyResetPassword = async (data) => {
+  return await api.post("/auth/verify-reset-password", data);
+};
+
+export const resetPassword = async (data) => {
+  return await api.post("/auth/reset-password", data);
+};
+
+export const resendPasswordReset = async (email) => {
+  return await api.post("/auth/resend-password-reset", { email });
+};
+
 export const login = async (data) => {
   return await api.post("/auth/login", data);
 };

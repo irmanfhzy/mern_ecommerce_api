@@ -31,7 +31,9 @@ export default function ProductCard({ product }) {
           {product.name}
         </h3>
 
-        <p className="mt-2 text-base font-semibold text-amber-600">{price}</p>
+        <p className="mt-2 text-sm sm:text-base font-semibold text-amber-600">
+          {price}
+        </p>
       </div>
     </div>
   );

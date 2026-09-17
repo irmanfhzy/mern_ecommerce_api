@@ -1,35 +1,52 @@
-import e from "express";
 import * as authService from "../services/auth.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 export const registerController = asyncHandler(async (req, res) => {
-  await authService.register(req.body);
+  const data = await authService.register(req.body);
+  res.status(201).json({ success: true, ...data });
+});
+
+export const verifyEmailController = asyncHandler(async (req, res) => {
+  const data = await authService.verifyEmail(req.body);
+  res.status(201).json({ success: true, ...data });
+});
+
+export const resendVerificationEmailController = asyncHandler(
+  async (req, res) => {
+    const data = await authService.resendVerificationEmail(req.body);
+    res.status(200).json({ success: true, ...data });
+  },
+);
+
+export const forgotPasswordController = asyncHandler(async (req, res) => {
+  const data = await authService.forgotPassword(req.body);
+  res.status(200).json({ success: true, ...data });
+});
+
+export const verifyResetPasswordController = asyncHandler(async (req, res) => {
+  const data = await authService.verifyResetPassword(req.body);
+  res.status(200).json({ success: true, ...data });
+});
+
+export const resetPasswordController = asyncHandler(async (req, res) => {
+  await authService.resetPassword(req.body);
   res
-    .status(201)
-    .json({ success: true, message: "Verification code sent to your email" });
+    .status(200)
+    .json({ success: true, message: "Password reset successfully" });
+});
+
+export const resendPasswordResetController = asyncHandler(async (req, res) => {
+  const data = await authService.resendPasswordReset(req.body);
+  res.status(200).json({
+    success: true,
+    ...data,
+  });
 });
 
 export const loginController = asyncHandler(async (req, res) => {
   const data = await authService.login(req.body);
   res.status(200).json({ success: true, ...data });
 });
-
-export const verifyEmailController = asyncHandler(async (req, res) => {
-  await authService.verifyEmail(req.body);
-  res
-    .status(201)
-    .json({ success: true, message: "Email verified successfully" });
-});
-
-export const resendVerificationEmailController = asyncHandler(
-  async (req, res) => {
-    await authService.resendVerificationEmail(req.body);
-    res.status(200).json({
-      success: true,
-      message: "Verification code resent to your email",
-    });
-  },
-);
 
 export const googleLoginController = asyncHandler(async (req, res) => {
   const data = await authService.googleLogin(req.body.credential);
